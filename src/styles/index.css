@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    color-scheme: dark;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply min-h-screen bg-ink-900 font-sans text-[15px] leading-relaxed text-film-100 antialiased;
+    font-variation-settings: 'wdth' 100;
+  }
+
+  :focus-visible {
+    outline: 2px solid theme('colors.localizer.DEFAULT');
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    @apply bg-localizer/30 text-film-50;
+  }
+
+  input,
+  select,
+  textarea {
+    @apply text-film-50 placeholder:text-film-500;
+  }
+}
+
+@layer components {
+  /* Condensed Archivo — region headings and the suite title, like film-jacket labels. */
+  .type-condensed {
+    font-variation-settings: 'wdth' 78;
+    font-stretch: 78%;
+  }
+
+  /* DICOM-style corner annotation text, readable over any image. */
+  .annot {
+    @apply text-annot tabular-nums text-film-100;
+    text-shadow:
+      0 0 2px rgb(0 0 0 / 0.9),
+      0 1px 3px rgb(0 0 0 / 0.8);
+  }
+
+  .field {
+    @apply w-full rounded-md border border-ink-600 bg-ink-950 px-3 py-2 text-sm transition-colors focus:border-localizer focus:outline-none;
+  }
+
+  .label {
+    @apply mb-1 block text-sm font-medium text-film-300;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-3.5 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply btn bg-localizer text-ink-950 hover:bg-localizer-300;
+  }
+
+  .btn-quiet {
+    @apply btn border border-ink-600 text-film-100 hover:border-film-500 hover:bg-ink-800;
+  }
+
+  .btn-ghost {
+    @apply btn text-film-300 hover:bg-ink-800 hover:text-film-50;
+  }
+
+  .btn-danger {
+    @apply btn border border-alert/40 text-alert hover:bg-alert/10;
+  }
+
+  .chip {
+    @apply inline-flex items-center rounded-full border border-ink-600 px-2.5 py-1 text-[13px] text-film-300 transition-colors hover:border-localizer/60 hover:text-film-50;
+  }
+
+  .chip-active {
+    @apply border-localizer bg-localizer/10 text-localizer-300;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

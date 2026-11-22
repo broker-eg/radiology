@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build output
+dist/
+*.tsbuildinfo
+
+# env (.env.production holds only PUBLIC values and is committed on purpose)
+.env
+.env.local
+.env.*.local
+
+# supabase local
+supabase/.branches/
+supabase/.temp/
+
+# legacy extraction output (49 MB of generated HTML lives in Supabase Storage, not git)
+legacy-extract/
+
+# editor / os
+.DS_Store
+*.log
+.direnv/
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.claude/
