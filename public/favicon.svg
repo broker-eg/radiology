@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- A reading-room viewport: gold corner brackets framing a cyan axial "slice" with a localizer line. -->
+  <rect width="512" height="512" rx="112" fill="#0A1220"/>
+  <g fill="none" stroke="#E3B95F" stroke-width="22" stroke-linecap="round">
+    <path d="M112 176V112h64"/>
+    <path d="M336 112h64v64"/>
+    <path d="M400 336v64h-64"/>
+    <path d="M176 400h-64v-64"/>
+  </g>
+  <ellipse cx="256" cy="256" rx="92" ry="110" fill="none" stroke="#4FD1E8" stroke-width="22"/>
+  <ellipse cx="256" cy="262" rx="40" ry="52" fill="#4FD1E8" opacity="0.35"/>
+  <path d="M136 256h240" stroke="#4FD1E8" stroke-width="10" stroke-linecap="round" opacity="0.8"/>
+</svg>
