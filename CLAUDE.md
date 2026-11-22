@@ -18,6 +18,12 @@ Read `README.md` first (what the app is, plans/roles, deploy). This file is the 
 
 - `dev` · `build` (`tsc --noEmit && vite build`) · `typecheck` · `lint` · `format` · `preview`
 - `db:push` (after `supabase link --project-ref jnpkukgwsuvzehwxjxfc`) · `db:types`
+- **Applying migrations (agents)**: `node scripts/supabase-api.mjs migrate` — runs pending
+  `supabase/migrations/*.sql` through the Management API with the personal access token in
+  `.secrets/supabase-access-token` (git-ignored; or `$SUPABASE_ACCESS_TOKEN`), records them in
+  `supabase_migrations.schema_migrations` like `db push`, and reloads the PostgREST cache.
+  `… migrations` lists applied/pending; `… sql "<sql>"` / `… file x.sql` run ad-hoc SQL.
+  Ship order for a feature: migrate → verify → push `main` (deploys) → check the live page.
 - Verify a change: `pnpm typecheck && pnpm lint` green, plus `scripts/rls_check.sql` after
   any schema/RLS change.
 

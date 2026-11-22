@@ -74,7 +74,9 @@ Project `jnpkukgwsuvzehwxjxfc` — schema in `supabase/migrations/` (applied):
 - RLS smoke test: `scripts/rls_check.sql` (read-only, rolled back).
 
 To push future migrations: `supabase link --project-ref jnpkukgwsuvzehwxjxfc` then
-`pnpm db:push`; regenerate types with `pnpm db:types`.
+`pnpm db:push`; regenerate types with `pnpm db:types`. Without the database password, use the
+Management API instead: put a personal access token in `.secrets/supabase-access-token`
+(git-ignored) and run `node scripts/supabase-api.mjs migrate`.
 
 ### Dashboard settings to check (Authentication)
 

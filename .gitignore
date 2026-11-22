@@ -6,6 +6,9 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# local secrets (Supabase personal access token for scripts/supabase-api.mjs) — never committed
+.secrets/
+
 # env (.env.production holds only PUBLIC values and is committed on purpose)
 .env
 .env.local
