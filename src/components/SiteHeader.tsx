@@ -1,7 +1,8 @@
 import { NavLink } from 'react-router-dom';
-import { LogOut, ShieldCheck } from 'lucide-react';
+import { CircleHelp, LogOut, ShieldCheck } from 'lucide-react';
 import portraitUrl from '@/assets/branding/portrait.jpg';
 import { useProfile, useSignOut } from '@/features/auth/hooks/useProfile';
+import { openTour } from '@/lib/tour';
 import { cn } from '@/lib/utils';
 import { InstallButton } from './InstallButton';
 
@@ -47,6 +48,15 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-1 sm:gap-2">
+          <button
+            type="button"
+            className="btn-ghost px-2.5"
+            onClick={openTour}
+            aria-label="Show the welcome tour"
+            title="Welcome tour"
+          >
+            <CircleHelp className="h-4 w-4" />
+          </button>
           <InstallButton />
           {isAdmin && (
             <NavLink to="/admin" className="btn-ghost px-2.5 md:hidden" aria-label="Users">

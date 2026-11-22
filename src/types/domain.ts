@@ -41,6 +41,8 @@ export interface Profile {
   plan: Plan;
   planChangedAt: string | null;
   heroAppId: string | null;
+  /** When the welcome tour was completed or skipped; null → show it. */
+  onboardedAt: string | null;
   createdAt: string;
 }
 

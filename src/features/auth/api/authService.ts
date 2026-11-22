@@ -11,6 +11,7 @@ function toProfile(row: Tables<'profiles'>): Profile {
     plan: row.plan as Plan,
     planChangedAt: row.plan_changed_at,
     heroAppId: row.hero_app_id,
+    onboardedAt: row.onboarded_at,
     createdAt: row.created_at,
   };
 }
@@ -51,5 +52,13 @@ export async function signOut(): Promise<void> {
 
 export async function setHeroApp(userId: string, appId: string | null): Promise<void> {
   const { error } = await supabase.from('profiles').update({ hero_app_id: appId }).eq('id', userId);
+  if (error) throw error;
+}
+
+export async function markOnboarded(userId: string): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ onboarded_at: new Date().toISOString() })
+    .eq('id', userId);
   if (error) throw error;
 }

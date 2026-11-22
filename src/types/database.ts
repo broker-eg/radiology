@@ -136,6 +136,7 @@ export type Database = {
           full_name: string | null
           hero_app_id: string | null
           id: string
+          onboarded_at: string | null
           plan: string
           plan_changed_at: string | null
           role: string
@@ -146,6 +147,7 @@ export type Database = {
           full_name?: string | null
           hero_app_id?: string | null
           id: string
+          onboarded_at?: string | null
           plan?: string
           plan_changed_at?: string | null
           role?: string
@@ -156,6 +158,7 @@ export type Database = {
           full_name?: string | null
           hero_app_id?: string | null
           id?: string
+          onboarded_at?: string | null
           plan?: string
           plan_changed_at?: string | null
           role?: string

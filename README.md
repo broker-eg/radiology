@@ -7,6 +7,8 @@ GitHub Pages with a Supabase backend.
 - **93 generators** in 12 body regions: 69 run inside the suite (sandboxed), 24 open AWS Quick.
 - **Accounts & plans**: anyone can sign up on **Free**; **Pro** unlocks every generator.
   Admins move users between plans in the **Users** portal (`#/admin`).
+- **Welcome tour**: a 4-step intro opens on a new account's first sign-in (remembered per user
+  in `profiles.onboarded_at`); the **?** in the header shows it again.
 - **Installable**: works on desktop and phones, and installs as an app from the browser
   (Android/desktop Chrome & Edge: _Install app_; iPhone/iPad Safari: _Share → Add to Home Screen_).
 

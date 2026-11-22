@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/app/providers/authContext';
-import { fetchProfile, setHeroApp, signOut } from '../api/authService';
+import type { Profile } from '@/types/domain';
+import { fetchProfile, markOnboarded, setHeroApp, signOut } from '../api/authService';
 
 export const profileKey = (userId: string | undefined) => ['profile', userId] as const;
 
@@ -31,6 +32,22 @@ export function useSetHeroApp() {
   return useMutation({
     mutationFn: (appId: string | null) => setHeroApp(userId as string, appId),
     onSuccess: () => qc.invalidateQueries({ queryKey: profileKey(userId) }),
+  });
+}
+
+/** Records that the welcome tour was seen (optimistic, silent on failure). */
+export function useMarkOnboarded() {
+  const qc = useQueryClient();
+  const { userId } = useProfile();
+  return useMutation({
+    meta: { toast: false },
+    mutationFn: () => markOnboarded(userId as string),
+    onMutate: () => {
+      qc.setQueryData<Profile | null>(profileKey(userId), (p) =>
+        p ? { ...p, onboardedAt: new Date().toISOString() } : p,
+      );
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: profileKey(userId) }),
   });
 }
 

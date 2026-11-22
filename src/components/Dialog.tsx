@@ -10,6 +10,8 @@ interface DialogProps {
   /** Short context shown next to the title (e.g. the body region). */
   context?: ReactNode;
   size?: 'md' | 'lg' | 'xl';
+  /** Short content: a bottom sheet on phones instead of a full-screen page. */
+  compact?: boolean;
   children: ReactNode;
 }
 
@@ -19,7 +21,15 @@ const SIZES = { md: 'sm:max-w-lg', lg: 'sm:max-w-3xl', xl: 'sm:max-w-5xl' } as c
  * Full-screen sheet on phones, centred panel from `sm` up. Escape and the backdrop close
  * it; focus moves in on open and returns to the trigger on close.
  */
-export function Dialog({ open, onClose, title, context, size = 'lg', children }: DialogProps) {
+export function Dialog({
+  open,
+  onClose,
+  title,
+  context,
+  size = 'lg',
+  compact = false,
+  children,
+}: DialogProps) {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
@@ -49,7 +59,10 @@ export function Dialog({ open, onClose, title, context, size = 'lg', children }:
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-stretch justify-center bg-ink-950/85 backdrop-blur-sm sm:items-center sm:p-6"
+      className={cn(
+        'fixed inset-0 z-50 flex justify-center bg-ink-950/85 backdrop-blur-sm sm:items-center sm:p-6',
+        compact ? 'items-end' : 'items-stretch',
+      )}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -63,6 +76,7 @@ export function Dialog({ open, onClose, title, context, size = 'lg', children }:
         className={cn(
           'flex w-full animate-sheet-in flex-col overflow-hidden border-ink-700 bg-ink-850 outline-none sm:max-h-[92vh] sm:rounded-lg sm:border sm:shadow-2xl sm:shadow-black/70',
           SIZES[size],
+          compact && 'max-h-[90vh] rounded-t-xl border-t',
         )}
       >
         <header className="flex items-start justify-between gap-3 border-b border-ink-700 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-5 sm:pt-3">

@@ -5,6 +5,7 @@ import { FullScreenLoader } from '@/components/FullScreenLoader';
 import { AuthScreen } from '@/features/auth/components/AuthScreen';
 import { useProfile } from '@/features/auth/hooks/useProfile';
 import { SuitePage } from '@/features/catalog/routes/SuitePage';
+import { WelcomeTour } from '@/features/onboarding/components/WelcomeTour';
 
 // Only admins ever open the user portal — keep it out of everyone else's first load.
 const AdminPage = lazy(() =>
@@ -40,6 +41,7 @@ export default function App() {
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <WelcomeTour />
     </HashRouter>
   );
 }
