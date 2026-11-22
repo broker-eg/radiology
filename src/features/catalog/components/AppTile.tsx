@@ -1,4 +1,5 @@
 import { Viewport } from '@/components/Viewport';
+import { OfflineMark } from '@/features/offline/components/OfflineBits';
 import { useT } from '@/lib/i18n';
 import type { SuiteApp } from '@/types/domain';
 import { coverOf } from '../lib/cover';
@@ -8,6 +9,8 @@ import { Highlight } from './Highlight';
 export interface AppActions {
   isFavorite: (app: SuiteApp) => boolean;
   canLaunch: (app: SuiteApp) => boolean;
+  /** Saved on this device: opens with no connection. */
+  isOffline: (app: SuiteApp) => boolean;
   onToggleFavorite: (app: SuiteApp) => void;
   onOpenDetails: (app: SuiteApp) => void;
   onLaunch: (app: SuiteApp) => void;
@@ -63,7 +66,14 @@ export function AppTile({
                 <p className="annot data-text line-clamp-2 max-sm:hidden">{app.badge}</p>
               ) : undefined
             }
-            bottomRight={<TierAnnotation app={app} locked={locked} />}
+            bottomRight={
+              <div className="flex items-center gap-1.5">
+                {actions.isOffline(app) && (
+                  <OfflineMark className="text-film-100 drop-shadow-[0_0_2px_rgb(0_0_0/0.9)]" />
+                )}
+                <TierAnnotation app={app} locked={locked} />
+              </div>
+            }
           />
         </button>
         <FavoriteButton

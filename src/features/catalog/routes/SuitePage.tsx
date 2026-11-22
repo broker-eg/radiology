@@ -1,10 +1,15 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { LayoutGrid, List, Plus, Rows3, Search, SlidersHorizontal, X } from 'lucide-react';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { LayoutGrid, List, Plus, Rows3, Search, SlidersHorizontal, WifiOff, X } from 'lucide-react';
 import defaultHero from '@/assets/branding/hero.webp';
 import { Dialog } from '@/components/Dialog';
 import { SiteHeader } from '@/components/SiteHeader';
 import { useProfile, useSetHeroApp } from '@/features/auth/hooks/useProfile';
+import {
+  useConnected,
+  useOfflineHousekeeping,
+  useOfflineMap,
+} from '@/features/offline/hooks/useOffline';
 import { useT } from '@/lib/i18n';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
@@ -57,13 +62,15 @@ function readView(): ViewMode {
 
 export function SuitePage() {
   const t = useT();
-  const { profile, isAdmin, hasPro } = useProfile();
+  const { profile, isAdmin, hasPro, isFresh: profileFresh } = useProfile();
   const categoriesQ = useCategories();
   const appsQ = useApps();
   const favoritesQ = useFavorites();
   const toggleFavorite = useToggleFavorite();
   const setHero = useSetHeroApp();
   const deleteApp = useDeleteApp();
+  const offlineQ = useOfflineMap();
+  const connected = useConnected();
 
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [view, setView] = useState<ViewMode>(readView);
@@ -88,6 +95,8 @@ export function SuitePage() {
 
   const canLaunch = useCallback((app: SuiteApp) => hasPro || app.tier === 'free', [hasPro]);
   const prefetch = usePrefetchAppHtml(canLaunch);
+  const offlineIds = offlineQ.data;
+  useOfflineHousekeeping(apps, canLaunch, connected && appsQ.isFetchedAfterMount && profileFresh);
   const patch = useCallback((p: Partial<Filters>) => setFilters((f) => ({ ...f, ...p })), []);
   const ctx = useMemo(() => ({ favorites, canLaunch }), [favorites, canLaunch]);
   const filtered = useMemo(() => filterApps(apps, filters, ctx), [apps, filters, ctx]);
@@ -119,6 +128,7 @@ export function SuitePage() {
   const actions: AppActions = {
     isFavorite: (app) => favorites.has(app.id),
     canLaunch,
+    isOffline: (app) => !!offlineIds?.has(app.id),
     onToggleFavorite: (app) =>
       toggleFavorite.mutate({ appId: app.id, favorite: !favorites.has(app.id) }),
     onOpenDetails: (app) => pushParam('app', app.id),
@@ -423,6 +433,17 @@ export function SuitePage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            ) : !apps.length && (!connected || appsQ.fetchStatus === 'paused') ? (
+              <div className="rounded-md border border-dashed border-ink-600 px-6 py-14 text-center">
+                <WifiOff className="mx-auto h-6 w-6 text-alert" aria-hidden />
+                <p className="mt-3 text-lg font-semibold text-film-50">
+                  {t.offline.catalogOffline}
+                </p>
+                <p className="mt-1 text-sm text-film-400">{t.offline.catalogOfflineHint}</p>
+                <Link to="/offline" className="btn-primary mt-5">
+                  {t.header.offlineLibrary}
+                </Link>
               </div>
             ) : appsQ.isError && !apps.length ? (
               <div className="rounded-md border border-alert/40 p-6 text-center">

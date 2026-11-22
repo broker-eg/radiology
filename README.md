@@ -24,6 +24,14 @@ GitHub Pages with a Supabase backend.
   opened generators are kept on the device per version; covers, fonts and the app shell are
   cached by the service worker (slow network → saved shell after 2.5 s). All of it is wiped on
   sign-out.
+- **Offline** (`#/offline`, the _Offline_ tab / download button in the header): download one
+  generator (details sheet → _Download for offline_) or every generator on your plan at once,
+  with sizes and progress. Downloads open with no connection, refresh themselves when opened
+  online (or _Update_ on the Offline page), and _Save as file_ exports a standalone `.html` that
+  opens in any browser without an account. The service worker precaches the whole built app,
+  so after one visit the suite itself starts offline — signed in from the saved session even
+  when the access token has expired. Downloads of generators that left your plan or the catalog
+  are removed on the next online visit; signing out removes all of them.
 
 ## Stack
 
@@ -117,6 +125,7 @@ src/app/                        config (env), providers (auth, query)
 src/features/auth|catalog|admin api/ (only place that imports Supabase) → hooks/ → components/ → routes/
 src/components/                 shared UI (Dialog, Viewport, SiteHeader, AccountMenu, InstallPrompt…)
 src/features/onboarding/        the arrow tour (CoachTour)
+src/features/offline/           downloads (Cache Storage store, queue, Offline page)
 src/lib/                        supabase client, query client (+ persistence), toast, PWA, theme
 src/lib/i18n/                   en.ts (source of truth) + ar.ts — every interface string
 src/assets/fonts/               self-hosted Archivo, Plex Arabic, signature-subset Newsreader

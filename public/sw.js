@@ -1,13 +1,21 @@
-// Service worker: makes the suite installable and quick to open.
+// Service worker: makes the suite installable, quick to open, and usable offline.
+//   - Precache: on install, the whole built app (every file under assets/ — bundles, lazy
+//     pages, fonts, images) plus the shell, so the suite opens with no connection after one
+//     visit. The build fills PRECACHE and BUILD (vite.config.ts → precacheServiceWorker); a
+//     new deploy changes BUILD, which installs a fresh cache and drops the previous one.
 //   - App shell (index.html): network first, but a slow network falls back to the saved shell
-//     after a short wait, so a weak signal never holds the app hostage.
+//     after a short wait, so a weak signal never holds the app hostage. Offline → saved shell.
 //   - Hashed bundles, fonts, images under /assets/: cache first (they never change in place).
 //   - Generator cover images (public Supabase bucket, versioned ?v= URLs): cache first.
-// Auth, catalog data and generator HTML always go to Supabase (the page keeps its own
-// per-account generator cache, which this worker leaves alone).
-const SHELL_CACHE = 'radiology-shell-v2';
+// Auth, catalog data and generator HTML always go to Supabase. The page keeps its own
+// per-account generator caches (recently opened + offline downloads), which this worker
+// never touches — they must survive its updates.
+const BUILD = 'dev';
+const PRECACHE = [];
+
+const SHELL_CACHE = `radiology-shell-${BUILD}`;
 const COVER_CACHE = 'radiology-covers-v1';
-const KEEP = new Set([SHELL_CACHE, COVER_CACHE, 'radiology-generators-v1']);
+const KEEP = new Set([SHELL_CACHE, COVER_CACHE, 'radiology-generators-v1', 'radiology-offline-v1']);
 const SHELL = [
   './',
   './index.html',
@@ -22,7 +30,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches
       .open(SHELL_CACHE)
-      .then((cache) => cache.addAll(SHELL))
+      .then((cache) => cache.addAll([...SHELL, ...PRECACHE]))
       .then(() => self.skipWaiting()),
   );
 });
@@ -50,7 +58,7 @@ function navigate(request) {
     }
     return response;
   });
-  const fallback = () => caches.match('./index.html');
+  const fallback = () => caches.match('./index.html', { cacheName: SHELL_CACHE, ignoreVary: true });
   const slow = new Promise((resolve) => setTimeout(resolve, NAV_TIMEOUT_MS)).then(fallback);
   // Whichever answers first: fresh page, or (after the timeout) the saved shell.
   return Promise.race([network, slow.then((hit) => hit || network)]).catch(() =>
@@ -58,9 +66,12 @@ function navigate(request) {
   );
 }
 
+// ignoreVary: hosts send Vary (Origin, Accept-Encoding), and a precached or pre-warmed entry
+// was stored from a different request than the one asking now (module scripts carry Origin,
+// <img> doesn't). These URLs are content-hashed or versioned, so the variants are identical.
 function cacheFirst(cacheName, request, load = () => fetch(request), onStore = () => {}) {
   return caches.open(cacheName).then((cache) =>
-    cache.match(request).then(
+    cache.match(request, { ignoreVary: true }).then(
       (hit) =>
         hit ||
         load().then((response) => {
@@ -116,5 +127,5 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Everything else (icons, manifest): network first, cache as fallback.
-  event.respondWith(fetch(request).catch(() => caches.match(request)));
+  event.respondWith(fetch(request).catch(() => caches.match(request, { ignoreVary: true })));
 });

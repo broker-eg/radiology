@@ -70,6 +70,14 @@ Read `README.md` first (what the app is, plans/roles, deploy). This file is the 
 - **Speed**: `apps/categories/profile/favorites` persist to localStorage (`lib/persistQueries`);
   generator HTML lives in Cache Storage keyed by `updated_at` (`catalogService.fetchAppHtml`).
   Both are cleared on `SIGNED_OUT` in `AuthProvider` — keep that if you add per-user caches.
+- **Offline**: explicit downloads live in Cache Storage `radiology-offline-v1`
+  (`features/offline/api/offlineStore.ts`, details in an `x-offline-meta` header);
+  `fetchAppHtml` falls back to them (any version) offline or after 4 s of a silent network.
+  Generator-HTML queries use `networkMode: 'always'` — they must run with no connection.
+  `public/sw.js` precaches the build: `vite.config.ts` fills `BUILD`/`PRECACHE` at build time.
+  Any page-owned cache must be listed in the worker's `KEEP`, or a deploy wipes it. Offline with
+  an expired token, `AuthProvider` runs from the stored session (`readStoredSession`,
+  `auth.offline`) instead of waiting ~25 s for supabase-js to give up refreshing.
 - Screens are checked at 390 px (phone) and 1440 px, in English/dark, English/light and Arabic.
 
 ## Gotchas

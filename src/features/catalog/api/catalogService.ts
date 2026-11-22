@@ -1,4 +1,6 @@
+import { readOfflineApp, saveOfflineApp } from '@/features/offline/api/offlineStore';
 import { t } from '@/lib/i18n';
+import { isOnline } from '@/lib/network';
 import { supabase } from '@/lib/supabase';
 import type { Tables, TablesInsert } from '@/types/database';
 import type { AppDraft, AppKind, AppStatus, AppTier, Category, SuiteApp } from '@/types/domain';
@@ -76,13 +78,25 @@ export class LockedGeneratorError extends Error {
   }
 }
 
+/** No connection, and this generator isn't on the device (never downloaded or opened). */
+export class OfflineUnavailableError extends Error {
+  constructor() {
+    super(t().workspace.offlineError);
+    this.name = 'OfflineUnavailableError';
+  }
+}
+
 // Generators the person has opened stay on the device (Cache Storage), keyed by the app's
 // updated_at: a re-launch tomorrow is instant, and an admin edit gets a fresh copy. Only
 // files Storage already served to this account land here; signing out clears it.
 const GENERATOR_CACHE = 'radiology-generators-v1';
 
+function cachePrefix(path: string): string {
+  return `${location.origin}/__generators/${encodeURIComponent(path)}?`;
+}
+
 function cacheKey(path: string, version: string): string {
-  return `${location.origin}/__generators/${encodeURIComponent(path)}?v=${encodeURIComponent(version)}`;
+  return `${cachePrefix(path)}v=${encodeURIComponent(version)}`;
 }
 
 async function openGeneratorCache(): Promise<Cache | null> {
@@ -101,28 +115,80 @@ export async function clearGeneratorCache(): Promise<void> {
   }
 }
 
-/** A generator's HTML: from this device when this version was opened before, else Storage. */
-export async function fetchAppHtml(path: string, version: string): Promise<string> {
+/** Whatever version of this generator was last opened here (offline: better than nothing). */
+async function anyOpenedVersion(cache: Cache | null, path: string): Promise<string | null> {
+  if (!cache) return null;
+  const prefix = cachePrefix(path);
+  const req = (await cache.keys()).find((r) => r.url.startsWith(prefix));
+  const res = req ? await cache.match(req) : undefined;
+  return res ? res.text() : null;
+}
+
+// A connection that neither works nor fails ("lie-fi"): when the device already has a copy,
+// open it after this long rather than keep the person waiting on the network.
+const SLOW_NETWORK_MS = 4000;
+
+/**
+ * A generator's HTML: this version from the device when it was opened or downloaded before,
+ * else Storage. With no connection (or one that doesn't answer), any saved version opens
+ * rather than nothing. Opening a downloaded generator online keeps its offline copy current.
+ */
+export async function fetchAppHtml(app: SuiteApp): Promise<string> {
+  const path = app.htmlPath as string;
+  const version = app.updatedAt;
   const cache = await openGeneratorCache();
   const key = cacheKey(path, version);
   const hit = await cache?.match(key).catch(() => undefined);
   if (hit) return hit.text();
 
-  const html = await downloadAppHtml(path);
-  if (cache) {
-    void (async () => {
-      // Drop older versions of the same generator, then keep this one.
-      const prefix = `${location.origin}/__generators/${encodeURIComponent(path)}?`;
-      const stale = (await cache.keys()).filter((r) => r.url.startsWith(prefix));
-      await Promise.all(stale.map((r) => cache.delete(r)));
-      await cache.put(key, new Response(html, { headers: { 'content-type': 'text/html' } }));
-    })().catch(() => undefined);
+  const saved = await readOfflineApp(app.id).catch(() => null);
+  if (saved && saved.meta.version === version) return saved.html;
+  const deviceCopy = saved?.html ?? (await anyOpenedVersion(cache, path).catch(() => null));
+
+  // Offline, a Storage request would first spend ~25 s failing to refresh the session.
+  if (!isOnline()) {
+    if (deviceCopy !== null) return deviceCopy;
+    throw new OfflineUnavailableError();
   }
-  return html;
+
+  const keep = (html: string) => {
+    if (saved) {
+      // Downloaded before: replace the offline copy with this version.
+      void saveOfflineApp(app, html).catch(() => undefined);
+    } else if (cache) {
+      void (async () => {
+        // Drop older versions of the same generator, then keep this one.
+        const stale = (await cache.keys()).filter((r) => r.url.startsWith(cachePrefix(path)));
+        await Promise.all(stale.map((r) => cache.delete(r)));
+        await cache.put(key, new Response(html, { headers: { 'content-type': 'text/html' } }));
+      })().catch(() => undefined);
+    }
+  };
+  const network = downloadAppHtml(path).then((html) => {
+    keep(html); // also when the device copy already won the race below
+    return html;
+  });
+
+  if (deviceCopy === null) {
+    try {
+      return await network;
+    } catch (error) {
+      if (error instanceof LockedGeneratorError || isOnline()) throw error;
+      throw new OfflineUnavailableError();
+    }
+  }
+  // An older copy is on the device: the network's answer if it comes quickly, else the copy.
+  return Promise.race([
+    network.catch((error: unknown) => {
+      if (error instanceof LockedGeneratorError) throw error;
+      return deviceCopy;
+    }),
+    new Promise<string>((resolve) => setTimeout(() => resolve(deviceCopy), SLOW_NETWORK_MS)),
+  ]);
 }
 
 /** Downloads a generator's HTML. Storage RLS refuses pro-tier files to Free accounts. */
-async function downloadAppHtml(path: string): Promise<string> {
+export async function downloadAppHtml(path: string): Promise<string> {
   const { data, error } = await supabase.storage.from(HTML_BUCKET).download(path);
   if (error) {
     // Storage answers "not found" for objects the caller's policy can't see.
@@ -134,6 +200,23 @@ async function downloadAppHtml(path: string): Promise<string> {
     throw error;
   }
   return data.text();
+}
+
+/**
+ * File sizes of the generators this account may download (Storage lists only the objects its
+ * policy lets the caller read), keyed by html_path.
+ */
+export async function listAppHtmlSizes(): Promise<Map<string, number>> {
+  const { data, error } = await supabase.storage
+    .from(HTML_BUCKET)
+    .list('', { limit: 1000, sortBy: { column: 'name', order: 'asc' } });
+  if (error) throw error;
+  const sizes = new Map<string, number>();
+  for (const file of data) {
+    const size = Number((file.metadata as { size?: number } | null)?.size ?? 0);
+    if (file.id && size > 0) sizes.set(file.name, size);
+  }
+  return sizes;
 }
 
 function coverExtension(file: File): string {

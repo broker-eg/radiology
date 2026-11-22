@@ -1,3 +1,4 @@
+import { OfflineMark } from '@/features/offline/components/OfflineBits';
 import { useT } from '@/lib/i18n';
 import type { SuiteApp } from '@/types/domain';
 import { coverOf } from '../lib/cover';
@@ -80,6 +81,9 @@ export function Worklist({
                         >
                           {app.tier === 'pro' ? t.common.pro : t.common.free}
                         </span>
+                        {actions.isOffline(app) && (
+                          <OfflineMark className="ms-2 inline-block align-[-2px] text-film-400" />
+                        )}
                       </span>
                       {app.duplicateOf && (
                         <span className="data-text block text-[13px] text-caliper-300/80">
@@ -95,7 +99,10 @@ export function Worklist({
                   {app.badge ? <Highlight text={app.badge} tokens={tokens} /> : '—'}
                 </td>
                 <td className="hidden px-3 py-2.5 md:table-cell">
-                  <TierAnnotation app={app} locked={locked} />
+                  <div className="flex items-center gap-1.5">
+                    <TierAnnotation app={app} locked={locked} />
+                    {actions.isOffline(app) && <OfflineMark className="text-film-400" />}
+                  </div>
                 </td>
                 <td className="px-3 py-2.5 text-end">
                   <LaunchButton

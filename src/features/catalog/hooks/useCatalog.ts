@@ -74,26 +74,25 @@ export function useToggleFavorite() {
   });
 }
 
-function htmlQuery(app: SuiteApp) {
+// Generator HTML is answered from the device when it's there (downloads, recent opens), so
+// it must not wait for a connection: networkMode 'always' lets the service decide.
+export function htmlQuery(app: SuiteApp) {
+  // The key holds what decides the content (id, file, version); the rest of `app` only labels
+  // the offline copy, so it isn't part of the key.
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   return {
     queryKey: catalogKeys.html(app.id, app.htmlPath, app.updatedAt),
-    queryFn: () => fetchAppHtml(app.htmlPath as string, app.updatedAt),
+    queryFn: () => fetchAppHtml(app),
     staleTime: Infinity,
     gcTime: 30 * 60_000,
     retry: false,
+    networkMode: 'always',
   } as const;
 }
 
 /** The generator's HTML (memory → this device → Storage), keyed by the app's last update. */
-export function useAppHtml(app: SuiteApp | null, enabled: boolean) {
-  return useQuery({
-    queryKey: catalogKeys.html(app?.id ?? '', app?.htmlPath ?? null, app?.updatedAt ?? ''),
-    queryFn: () => fetchAppHtml(app?.htmlPath as string, app?.updatedAt ?? ''),
-    enabled: enabled && !!app?.htmlPath,
-    staleTime: Infinity,
-    gcTime: 30 * 60_000,
-    retry: false,
-  });
+export function useAppHtml(app: SuiteApp, enabled: boolean) {
+  return useQuery({ ...htmlQuery(app), enabled: enabled && !!app.htmlPath });
 }
 
 /** Starts loading a generator the person is about to launch (hover, focus, details open). */

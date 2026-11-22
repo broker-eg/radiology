@@ -23,6 +23,8 @@ export function useProfile() {
     /** Pro plan or admin: may launch every generator. */
     hasPro: isAdmin || profile?.plan === 'pro',
     isLoading: query.isLoading,
+    /** Loaded from the server since this screen mounted (not the copy saved on the device). */
+    isFresh: query.isFetchedAfterMount && query.isSuccess && query.data !== null,
   };
 }
 

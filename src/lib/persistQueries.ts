@@ -4,10 +4,11 @@ import { dehydrate, hydrate, type DehydratedState, type QueryClient } from '@tan
 // (catalog, categories, the signed-in profile and favorites) are kept in localStorage and
 // restored before the first render. They are still refetched in the background, so the screen
 // settles on fresh data a moment later. Generator HTML is never stored here (too large; it has
-// its own device cache). Signing out wipes it.
+// its own device cache). Signing out wipes it. Kept for a month so the catalog still browses
+// offline after a long gap (it's replaced by fresh data whenever there's a connection).
 const KEY = 'radiology:query-cache';
 const VERSION = 1;
-const MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+const MAX_AGE = 30 * 24 * 60 * 60 * 1000;
 const PERSISTED = new Set(['apps', 'categories', 'profile', 'favorites']);
 
 export function restoreQueries(client: QueryClient) {

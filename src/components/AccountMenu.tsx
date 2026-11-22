@@ -1,8 +1,9 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
-import { LogOut, ShieldCheck } from 'lucide-react';
+import { HardDriveDownload, LogOut, ShieldCheck } from 'lucide-react';
 import { useProfile, useSignOut } from '@/features/auth/hooks/useProfile';
+import { useOfflineMap } from '@/features/offline/hooks/useOffline';
 import { useLang, useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { InstallButton } from './InstallButton';
@@ -24,6 +25,8 @@ export function AccountMenu() {
   const lang = useLang();
   const { profile, email, isAdmin, hasPro } = useProfile();
   const signOut = useSignOut();
+  const { data: saved } = useOfflineMap();
+  const savedCount = saved?.size ?? 0;
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState<DOMRect | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -132,8 +135,18 @@ export function AccountMenu() {
                 )}
               </div>
 
-              {/* Hidden when nothing in it shows (Users is phone-only; Install may be unavailable). */}
-              <div className="space-y-1 border-b border-ink-700 p-2 [&:not(:has(a,button))]:hidden md:[&:not(:has(button))]:hidden">
+              <div className="space-y-1 border-b border-ink-700 p-2">
+                <Link
+                  to="/offline"
+                  onClick={() => setOpen(false)}
+                  className="btn-ghost w-full justify-start"
+                >
+                  <HardDriveDownload className="h-4 w-4" aria-hidden />
+                  <span className="me-auto">{t.header.offlineLibrary}</span>
+                  {savedCount > 0 && (
+                    <span className="tabular-nums text-film-500">{savedCount}</span>
+                  )}
+                </Link>
                 {isAdmin && (
                   <Link
                     to="/admin"
@@ -161,6 +174,11 @@ export function AccountMenu() {
                   <LogOut className="flip-rtl h-4 w-4" aria-hidden />
                   {t.header.signOut}
                 </button>
+                {savedCount > 0 && (
+                  <p className="px-3 pb-1 text-[13px] text-film-500">
+                    {t.offline.signOutNote(savedCount)}
+                  </p>
+                )}
               </div>
             </div>
           </>,

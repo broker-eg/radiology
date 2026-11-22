@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ExternalLink, ImageIcon, Link2, Lock, Pencil, Star, Trash2 } from 'lucide-react';
 import { Dialog } from '@/components/Dialog';
 import { Viewport } from '@/components/Viewport';
+import { OfflineToggle } from '@/features/offline/components/OfflineBits';
 import { useT } from '@/lib/i18n';
 import { toast } from '@/lib/toast';
 import { cn, copyToClipboard } from '@/lib/utils';
@@ -141,6 +142,7 @@ export function AppDialog({
           {primary && <div className="max-sm:hidden">{primary}</div>}
 
           <div className="flex flex-wrap gap-1.5 border-t border-ink-700 pt-4">
+            {!locked && <OfflineToggle app={app} />}
             <button
               type="button"
               className="btn-ghost"

@@ -5,6 +5,7 @@ import { FullScreenLoader } from '@/components/FullScreenLoader';
 import { AuthScreen } from '@/features/auth/components/AuthScreen';
 import { useProfile } from '@/features/auth/hooks/useProfile';
 import { SuitePage } from '@/features/catalog/routes/SuitePage';
+import { OfflinePage } from '@/features/offline/routes/OfflinePage';
 import { CoachTour } from '@/features/onboarding/components/CoachTour';
 import { useT } from '@/lib/i18n';
 
@@ -31,6 +32,8 @@ export default function App() {
     <HashRouter>
       <Routes>
         <Route path="/" element={<SuitePage />} />
+        {/* Not lazy: the page that must work with no connection ships in the main bundle. */}
+        <Route path="/offline" element={<OfflinePage />} />
         <Route
           path="/admin"
           element={

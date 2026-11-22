@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
+import { Loader2, WifiOff } from 'lucide-react';
 import heroUrl from '@/assets/branding/hero.webp';
 import portraitUrl from '@/assets/branding/portrait.webp';
 import { InstallButton } from '@/components/InstallButton';
@@ -8,6 +8,7 @@ import { QuickPreferences } from '@/components/Preferences';
 import { Signature } from '@/components/Signature';
 import { Viewport } from '@/components/Viewport';
 import { t as messages, useT } from '@/lib/i18n';
+import { useOnline } from '@/lib/network';
 import { errorMessage } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { signIn, signUp } from '../api/authService';
@@ -29,6 +30,7 @@ function friendlyAuthError(error: unknown): string {
 
 export function AuthScreen() {
   const t = useT();
+  const online = useOnline();
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -130,6 +132,13 @@ export function AuthScreen() {
           <p className="mt-1.5 text-sm text-film-400">
             {mode === 'signin' ? t.auth.signInLead : t.auth.signUpLead}
           </p>
+
+          {!online && (
+            <p className="mt-5 flex items-center gap-2 rounded-md border border-alert/40 bg-alert/10 px-3 py-2.5 text-sm text-film-50">
+              <WifiOff className="h-4 w-4 shrink-0 text-alert" aria-hidden />
+              {t.offline.signInOffline}
+            </p>
+          )}
 
           {notice && (
             <p className="mt-5 rounded-md border border-localizer/40 bg-localizer/10 px-3 py-2.5 text-sm text-film-50">

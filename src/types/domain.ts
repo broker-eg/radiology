@@ -74,3 +74,19 @@ export interface AppDraft {
   html: string | null;
   coverFile: File | null;
 }
+
+/** A generator saved on this device for offline use; its details are kept with it. */
+export interface OfflineApp {
+  appId: string;
+  name: string;
+  category: string;
+  modality: string;
+  badge: string | null;
+  tier: AppTier;
+  htmlPath: string;
+  coverUrl: string | null;
+  /** The app's updated_at when saved: an older value than the catalog's means an update. */
+  version: string;
+  bytes: number;
+  savedAt: string;
+}

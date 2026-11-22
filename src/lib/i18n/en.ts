@@ -76,6 +76,8 @@ export const en = {
     planPro: 'Pro',
     planFree: 'Free',
     signedInAs: 'Signed in as',
+    offline: 'Offline',
+    offlineLibrary: 'Offline library',
   },
 
   install: {
@@ -196,6 +198,78 @@ export const en = {
     popupBlocked: 'Allow pop-ups for this site to open generators in a new tab.',
     tabLoading: 'Loading generator…',
     lockedError: 'This generator is part of the Pro plan.',
+    offlineError: 'You’re offline, and this generator isn’t saved on this device.',
+    offlineHint: 'Next time you’re online, download it from its details or the Offline page.',
+  },
+
+  offline: {
+    title: 'Offline',
+    lead: 'Generators you download open on this device with no connection — on a ward with no signal, or on a plane.',
+    online: 'Online',
+    offline: 'Offline',
+    workingOffline: 'You’re offline. Downloaded generators still open.',
+    openLibrary: (n: number) => (n ? `Offline library (${n})` : 'Offline library'),
+    statSaved: 'Downloaded',
+    statOnDevice: 'On this device',
+    statUpdates: 'Updates',
+    savedOf: (n: number, m: number) => `${n} of ${m}`,
+    storageUse: (used: string, quota: string) => `This site uses ${used} of ${quota} available`,
+    downloadAll: (n: number) => (n === 1 ? 'Download 1 generator' : `Download all ${n}`),
+    downloadRest: (n: number) => `Download the other ${n}`,
+    updateAll: (n: number) => (n === 1 ? 'Update 1' : `Update ${n}`),
+    stop: 'Stop',
+    downloading: (done: number, total: number) => `Downloading ${done} of ${total}`,
+    allSaved: 'Every generator on your plan is on this device.',
+    needsConnection: 'Connect to the internet to download.',
+    sectionSaved: 'On this device',
+    sectionAvailable: 'Not downloaded yet',
+    filterLabel: 'Filter generators',
+    filterEmpty: 'No generator matches.',
+    open: 'Open',
+    saveFile: 'Save as file',
+    remove: 'Remove',
+    removeAll: 'Remove all',
+    confirmRemoveAll: (n: number) => `Remove ${n}?`,
+    download: 'Download',
+    update: 'Update',
+    upToDate: 'Up to date',
+    updateAvailable: 'Update available',
+    savedOn: (date: string) => `Saved ${date}`,
+    emptyTitle: 'Nothing downloaded yet',
+    emptyBody:
+      'Download a generator here, or from its details, and it opens even when there’s no connection.',
+    lockedNote: (n: number) =>
+      `${n} Pro ${plural(n, 'generator', 'generators')} can be downloaded on the Pro plan.`,
+    externalNote: 'AWS Quick generators run online, so they can’t be downloaded.',
+    installTitle: 'Open the suite with no connection',
+    installBody:
+      'The suite itself is kept on this device after your first visit. Install it to start it from its own icon, offline too.',
+    installed: 'Installed — start it from its icon, online or offline.',
+    fileTitle: 'Keep a copy outside the browser',
+    fileBody:
+      'Save as file writes a standalone .html you can open in any browser, or copy to another computer. No account needed.',
+    downloadForOffline: 'Download for offline',
+    availableOffline: 'Available offline',
+    downloadingOne: 'Downloading…',
+    removeDownload: 'Remove download',
+    savedOne: 'Saved for offline use',
+    batchDone: (n: number, size: string) =>
+      `Downloaded ${n} ${plural(n, 'generator', 'generators')} (${size})`,
+    batchFailed: (failed: number, total: number) =>
+      `${failed} of ${total} didn’t download. Check your connection and try again.`,
+    removedOne: (name: string) => `Removed ${name} from this device`,
+    removedMany: (n: number) =>
+      `Removed ${n} ${plural(n, 'generator', 'generators')} from this device`,
+    pruned: (n: number) =>
+      `${n} ${plural(n, 'download was', 'downloads were')} removed: no longer on your plan or in the catalog`,
+    missing: 'This generator is no longer on this device.',
+    unsupported: 'This browser can’t keep generators offline.',
+    signOutNote: (n: number) =>
+      `Signing out also removes ${n} downloaded ${plural(n, 'generator', 'generators')} from this device.`,
+    catalogOffline: 'You’re offline, and the catalog isn’t saved on this device yet.',
+    catalogOfflineHint: 'Your downloaded generators are in the Offline library.',
+    signInOffline: 'You’re offline. Signing in needs a connection.',
+    mark: 'Available offline',
   },
 
   toast: {

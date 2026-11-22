@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
-import { CircleHelp } from 'lucide-react';
+import { CircleHelp, HardDriveDownload } from 'lucide-react';
 import portraitUrl from '@/assets/branding/portrait.webp';
 import { useProfile } from '@/features/auth/hooks/useProfile';
+import { OfflineBanner } from '@/features/offline/components/OfflineBits';
+import { useOfflineMap } from '@/features/offline/hooks/useOffline';
 import { useT } from '@/lib/i18n';
 import { openTour } from '@/lib/tour';
 import { cn } from '@/lib/utils';
@@ -24,6 +26,8 @@ interface SiteHeaderProps {
 export function SiteHeader({ search, showSearch = false }: SiteHeaderProps) {
   const t = useT();
   const { profile, isAdmin, hasPro } = useProfile();
+  const { data: saved } = useOfflineMap();
+  const savedCount = saved?.size ?? 0;
   const searching = !!search && showSearch;
 
   return (
@@ -58,6 +62,12 @@ export function SiteHeader({ search, showSearch = false }: SiteHeaderProps) {
           <NavLink to="/" end className={navClass}>
             {t.header.generators}
           </NavLink>
+          <NavLink to="/offline" className={navClass}>
+            {t.header.offline}
+            {savedCount > 0 && (
+              <span className="ms-1.5 tabular-nums text-film-500">{savedCount}</span>
+            )}
+          </NavLink>
           {isAdmin && (
             <NavLink to="/admin" className={navClass}>
               {t.header.users}
@@ -79,6 +89,29 @@ export function SiteHeader({ search, showSearch = false }: SiteHeaderProps) {
 
         <div className="ms-auto flex shrink-0 items-center gap-1 sm:gap-2">
           <InstallButton className="hidden lg:inline-flex" />
+          {/* Phones/tablets: the nav is hidden, so the offline library gets its own button. */}
+          <NavLink
+            to="/offline"
+            className={({ isActive }) =>
+              cn(
+                'btn-ghost relative px-2.5 md:hidden',
+                isActive && 'text-film-50',
+                searching && 'max-sm:hidden',
+              )
+            }
+            aria-label={t.header.offlineLibrary}
+            title={t.header.offlineLibrary}
+          >
+            <HardDriveDownload className="h-[18px] w-[18px]" />
+            {savedCount > 0 && (
+              <span
+                aria-hidden
+                className="absolute end-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-localizer px-1 text-[11px] font-semibold tabular-nums leading-none text-ink-950"
+              >
+                {savedCount}
+              </span>
+            )}
+          </NavLink>
           <button
             type="button"
             data-tour="help"
@@ -109,6 +142,7 @@ export function SiteHeader({ search, showSearch = false }: SiteHeaderProps) {
           <AccountMenu />
         </div>
       </div>
+      <OfflineBanner />
     </header>
   );
 }

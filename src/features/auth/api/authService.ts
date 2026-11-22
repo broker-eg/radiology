@@ -46,8 +46,12 @@ export async function signUp(email: string, password: string, fullName: string):
 }
 
 export async function signOut(): Promise<void> {
-  const { error } = await supabase.auth.signOut();
-  if (error) throw error;
+  // Offline there's no server to revoke the session with: sign this device out locally. It
+  // still clears everything saved for the account (SIGNED_OUT); the "couldn't refresh" error
+  // supabase-js reports alongside is expected then.
+  const online = navigator.onLine;
+  const { error } = await supabase.auth.signOut(online ? undefined : { scope: 'local' });
+  if (error && online) throw error;
 }
 
 export async function setHeroApp(userId: string, appId: string | null): Promise<void> {

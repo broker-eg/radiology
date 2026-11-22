@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, ExternalLink, Loader2, Lock, Maximize2 } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Loader2, Lock, Maximize2, WifiOff } from 'lucide-react';
 import { useT } from '@/lib/i18n';
 import { toast } from '@/lib/toast';
 import type { SuiteApp } from '@/types/domain';
-import { LockedGeneratorError } from '../api/catalogService';
+import { LockedGeneratorError, OfflineUnavailableError } from '../api/catalogService';
 import { useAppHtml } from '../hooks/useCatalog';
 import { GENERATOR_ALLOW, GENERATOR_SANDBOX, openGeneratorTab } from '../lib/launch';
 import { fetchAppHtmlForTab } from '../lib/tabLoader';
@@ -49,6 +49,7 @@ export function Workspace({
   };
 
   const locked = !allowed || html.error instanceof LockedGeneratorError;
+  const unavailableOffline = html.error instanceof OfflineUnavailableError;
 
   return createPortal(
     <div
@@ -102,9 +103,17 @@ export function Workspace({
         {(html.isError || locked) && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-ink-950 px-6 text-center">
             {locked && <Lock className="h-6 w-6 text-caliper" />}
+            {unavailableOffline && <WifiOff className="h-6 w-6 text-alert" />}
             <p className="max-w-sm text-film-100">
-              {locked ? t.workspace.locked : t.workspace.failed}
+              {locked
+                ? t.workspace.locked
+                : unavailableOffline
+                  ? t.workspace.offlineError
+                  : t.workspace.failed}
             </p>
+            {unavailableOffline && (
+              <p className="max-w-sm text-sm text-film-400">{t.workspace.offlineHint}</p>
+            )}
             {!locked && (
               <button type="button" className="btn-quiet" onClick={() => void html.refetch()}>
                 {t.common.tryAgain}
