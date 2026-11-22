@@ -56,6 +56,12 @@ begin
   end;
 
   begin
+    perform public.admin_delete_user('22222222-2222-2222-2222-222222222222');
+    insert into qa_results values ('non-admin admin_delete_user', 'ALLOWED (bad)');
+  exception when others then insert into qa_results values ('non-admin admin_delete_user', 'blocked: ' || sqlstate);
+  end;
+
+  begin
     insert into public.favorites (user_id, app_id) values ('22222222-2222-2222-2222-222222222222', 'local-xray-msk');
     insert into qa_results values ('favorite for another user', 'ALLOWED (bad)');
   exception when others then insert into qa_results values ('favorite for another user', 'blocked: ' || sqlstate);

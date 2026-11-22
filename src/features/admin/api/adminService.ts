@@ -24,6 +24,12 @@ export async function setUserPlan(userId: string, plan: Plan): Promise<void> {
   if (error) throw error;
 }
 
+/** Deletes the account (and, by cascade, its profile and favorites). Admins and self refused. */
+export async function deleteUser(userId: string): Promise<void> {
+  const { error } = await supabase.rpc('admin_delete_user', { target_user: userId });
+  if (error) throw error;
+}
+
 export async function setUserRole(userId: string, role: Role): Promise<void> {
   const { error } = await supabase.rpc('admin_set_role', { target_user: userId, new_role: role });
   if (error) throw error;

@@ -265,6 +265,7 @@ export const ar: Messages = {
     planChanged: (who, pro) => `حساب ${who} الآن على ${pro ? 'خطة Pro' : 'الخطة المجانية'}`,
     roleChanged: (who, admin) =>
       admin ? `حساب ${who} الآن بصلاحيات مشرف` : `أُزيلت صلاحيات المشرف من حساب ${who}`,
+    userDeleted: (who) => `تم حذف حساب ${who}`,
   },
 
   tour: {
@@ -323,6 +324,10 @@ export const ar: Messages = {
     cantChangeOwnRole: 'لا يمكنك تغيير دورك بنفسك',
     removeAdmin: 'إزالة صلاحية المشرف',
     makeAdmin: 'تعيين مشرفًا',
+    deleteUser: (email) => `حذف ${email}`,
+    confirmDelete: 'حذف',
+    cantDeleteSelf: 'لا يمكنك حذف حسابك',
+    cantDeleteAdmin: 'أزل صلاحية المشرف أولًا لحذف هذا الحساب',
   },
 
   form: {

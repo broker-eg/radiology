@@ -209,6 +209,7 @@ export const en = {
     planChanged: (who: string, pro: boolean) => `${who} is now on ${pro ? 'Pro' : 'Free'}`,
     roleChanged: (who: string, admin: boolean) =>
       `${who} is ${admin ? 'now an admin' : 'no longer an admin'}`,
+    userDeleted: (who: string) => `Deleted ${who}’s account`,
   },
 
   tour: {
@@ -268,6 +269,10 @@ export const en = {
     cantChangeOwnRole: 'You can’t change your own role',
     removeAdmin: 'Remove admin',
     makeAdmin: 'Make admin',
+    deleteUser: (email: string) => `Delete ${email}`,
+    confirmDelete: 'Delete',
+    cantDeleteSelf: 'You can’t delete your own account',
+    cantDeleteAdmin: 'Remove admin first to delete this account',
   },
 
   form: {

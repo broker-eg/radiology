@@ -69,7 +69,8 @@ Project `jnpkukgwsuvzehwxjxfc` — schema in `supabase/migrations/` (applied):
 
 - `categories`, `apps` (catalog), `profiles` (role + plan), `favorites` — all with RLS.
 - Storage: `app-html` (private, plan-gated generator HTML), `app-covers` (public images).
-- RPCs: `admin_list_users`, `admin_set_plan`, `admin_set_role` (SECURITY DEFINER, admin-only).
+- RPCs: `admin_list_users`, `admin_set_plan`, `admin_set_role`, `admin_delete_user` (SECURITY
+  DEFINER, admin-only; delete refuses your own account and other admins — remove admin first).
 - RLS smoke test: `scripts/rls_check.sql` (read-only, rolled back).
 
 To push future migrations: `supabase link --project-ref jnpkukgwsuvzehwxjxfc` then

@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Search, Trash2, X } from 'lucide-react';
 import { SiteHeader } from '@/components/SiteHeader';
 import { useProfile } from '@/features/auth/hooks/useProfile';
 import { useT } from '@/lib/i18n';
 import { cn, formatDate, formatDateTime } from '@/lib/utils';
 import type { AdminUser, Plan } from '@/types/domain';
-import { useAdminUsers, useSetPlan, useSetRole } from '../hooks/useAdmin';
+import { useAdminUsers, useDeleteUser, useSetPlan, useSetRole } from '../hooks/useAdmin';
 
 type PlanFilter = 'all' | Plan;
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -16,6 +16,14 @@ export function AdminPage() {
   const usersQ = useAdminUsers();
   const setPlan = useSetPlan();
   const setRole = useSetRole();
+  const deleteUser = useDeleteUser();
+  // Two-step delete: the trash icon arms it, "Delete" confirms; it disarms itself after 5 s.
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!confirmingId) return;
+    const timer = setTimeout(() => setConfirmingId(null), 5000);
+    return () => clearTimeout(timer);
+  }, [confirmingId]);
   const [query, setQuery] = useState('');
   const [planFilter, setPlanFilter] = useState<PlanFilter>('all');
 
@@ -46,7 +54,8 @@ export function AdminPage() {
 
   const busyUser = (u: AdminUser) =>
     (setPlan.isPending && setPlan.variables?.user.id === u.id) ||
-    (setRole.isPending && setRole.variables?.user.id === u.id);
+    (setRole.isPending && setRole.variables?.user.id === u.id) ||
+    (deleteUser.isPending && deleteUser.variables?.id === u.id);
 
   const figures: [string, number, boolean?][] = [
     [t.admin.accounts, stats.total],
@@ -140,7 +149,7 @@ export function AdminPage() {
                   <li
                     key={u.id}
                     className={cn(
-                      'grid gap-3 px-4 py-3.5 md:grid-cols-[minmax(0,1fr)_7.5rem_minmax(0,1.5fr)_11rem] md:items-center md:gap-5',
+                      'grid gap-3 px-4 py-3.5 md:grid-cols-[minmax(0,1fr)_7.5rem_minmax(0,1.5fr)_13rem] md:items-center md:gap-5',
                       busy && 'opacity-60',
                     )}
                   >
@@ -202,20 +211,71 @@ export function AdminPage() {
                     </dl>
 
                     <div className="flex items-center gap-2 md:justify-end">
-                      {u.role === 'admin' && (
-                        <span className="text-sm font-medium text-localizer">{t.common.admin}</span>
+                      {confirmingId === u.id ? (
+                        <>
+                          <button
+                            type="button"
+                            className="btn-danger px-2.5"
+                            disabled={busy}
+                            autoFocus
+                            aria-label={t.admin.deleteUser(u.email)}
+                            onClick={() =>
+                              deleteUser.mutate(u, { onSettled: () => setConfirmingId(null) })
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" aria-hidden />
+                            {t.admin.confirmDelete}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-ghost px-2"
+                            disabled={busy}
+                            aria-label={t.common.cancel}
+                            title={t.common.cancel}
+                            onClick={() => setConfirmingId(null)}
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          {u.role === 'admin' && (
+                            <span className="text-sm font-medium text-localizer">
+                              {t.common.admin}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            className="btn-ghost px-2.5 text-sm"
+                            disabled={isSelf || busy}
+                            title={isSelf ? t.admin.cantChangeOwnRole : undefined}
+                            onClick={() =>
+                              setRole.mutate({
+                                user: u,
+                                role: u.role === 'admin' ? 'user' : 'admin',
+                              })
+                            }
+                          >
+                            {u.role === 'admin' ? t.admin.removeAdmin : t.admin.makeAdmin}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-ghost px-2 text-film-500 hover:text-alert disabled:hover:bg-transparent disabled:hover:text-film-500"
+                            disabled={isSelf || u.role === 'admin' || busy}
+                            aria-label={t.admin.deleteUser(u.email)}
+                            title={
+                              isSelf
+                                ? t.admin.cantDeleteSelf
+                                : u.role === 'admin'
+                                  ? t.admin.cantDeleteAdmin
+                                  : t.admin.deleteUser(u.email)
+                            }
+                            onClick={() => setConfirmingId(u.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </>
                       )}
-                      <button
-                        type="button"
-                        className="btn-ghost px-2.5 text-sm"
-                        disabled={isSelf || busy}
-                        title={isSelf ? t.admin.cantChangeOwnRole : undefined}
-                        onClick={() =>
-                          setRole.mutate({ user: u, role: u.role === 'admin' ? 'user' : 'admin' })
-                        }
-                      >
-                        {u.role === 'admin' ? t.admin.removeAdmin : t.admin.makeAdmin}
-                      </button>
                     </div>
                   </li>
                 );

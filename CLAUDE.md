@@ -42,6 +42,8 @@ Read `README.md` first (what the app is, plans/roles, deploy). This file is the 
   the app row's `tier = 'free'`.
 - Generators run in `<iframe sandbox>` **without** `allow-same-origin` (see
   `features/catalog/lib/launch.ts`) so uploaded HTML can't read the Supabase session.
+- Accounts are deleted only through `admin_delete_user` (admin-only; never self, never an
+  admin — demote first). It deletes the `auth.users` row; profile and favorites cascade.
 - First account to sign up becomes admin (`handle_new_user` trigger).
 
 ## Interface conventions
