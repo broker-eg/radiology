@@ -49,14 +49,15 @@ jobs:
     steps:
       # While the repo's Pages source is still "Deploy from a branch", every push also starts
       # GitHub's own `pages-build-deployment`, which publishes the raw sources (a blank page).
-      # Whichever finishes last wins — so wait for it, then publish dist/ on top.
+      # Whichever finishes last wins — so wait for it, then publish dist/ on top. The API names
+      # that run "pages build and deployment" (path dynamic/pages/pages-build-deployment).
       - name: Wait for the branch-based Pages build of this commit
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           for i in $(seq 1 36); do
             pending=$(gh api "repos/${{ github.repository }}/actions/runs?head_sha=${{ github.sha }}&per_page=50" \
-              --jq '[.workflow_runs[] | select(.name == "pages-build-deployment" and .status != "completed")] | length')
+              --jq '[.workflow_runs[] | select((.path // "" | contains("pages-build-deployment")) or .name == "pages build and deployment") | select(.status != "completed")] | length')
             [ "$pending" = "0" ] && exit 0
             echo "Branch-based Pages build still running; waiting ($i)…"
             sleep 10
