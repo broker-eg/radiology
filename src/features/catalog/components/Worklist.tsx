@@ -1,3 +1,4 @@
+import { useT } from '@/lib/i18n';
 import type { SuiteApp } from '@/types/domain';
 import { coverOf } from '../lib/cover';
 import { FavoriteButton, LaunchButton, TierAnnotation } from './AppBits';
@@ -14,28 +15,29 @@ export function Worklist({
   tokens: string[];
   actions: AppActions;
 }) {
+  const t = useT();
   return (
     <div className="overflow-hidden rounded-md border border-ink-700">
-      <table className="w-full border-collapse text-left text-sm">
+      <table className="w-full border-collapse text-start text-sm">
         <thead className="hidden bg-ink-850 text-film-400 md:table-header-group">
           <tr>
-            <th scope="col" className="px-3 py-2.5 font-medium">
-              Generator
+            <th scope="col" className="px-3 py-2.5 text-start font-medium">
+              {t.app.columnGenerator}
             </th>
-            <th scope="col" className="hidden px-3 py-2.5 font-medium lg:table-cell">
-              Region
+            <th scope="col" className="hidden px-3 py-2.5 text-start font-medium lg:table-cell">
+              {t.app.factRegion}
             </th>
-            <th scope="col" className="px-3 py-2.5 font-medium">
-              Modality
+            <th scope="col" className="px-3 py-2.5 text-start font-medium">
+              {t.app.factModality}
             </th>
-            <th scope="col" className="hidden px-3 py-2.5 font-medium xl:table-cell">
-              Scoring system
+            <th scope="col" className="hidden px-3 py-2.5 text-start font-medium xl:table-cell">
+              {t.app.factScoring}
             </th>
-            <th scope="col" className="px-3 py-2.5 font-medium">
-              Plan
+            <th scope="col" className="px-3 py-2.5 text-start font-medium">
+              {t.app.factPlan}
             </th>
             <th scope="col" className="px-3 py-2.5">
-              <span className="sr-only">Actions</span>
+              <span className="sr-only">{t.app.columnActions}</span>
             </th>
           </tr>
         </thead>
@@ -43,13 +45,17 @@ export function Worklist({
           {apps.map((app) => {
             const locked = !actions.canLaunch(app);
             return (
-              <tr key={app.id} className="bg-ink-900 transition-colors hover:bg-ink-850">
+              <tr
+                key={app.id}
+                data-tour="tile"
+                className="bg-ink-900 transition-colors hover:bg-ink-850"
+              >
                 <td className="px-3 py-2.5">
                   <div className="flex items-center gap-3">
                     <FavoriteButton
                       active={actions.isFavorite(app)}
                       onToggle={() => actions.onToggleFavorite(app)}
-                      className="-ml-1 shrink-0"
+                      className="-ms-1 shrink-0"
                     />
                     <img
                       src={coverOf(app)}
@@ -60,16 +66,23 @@ export function Worklist({
                     <button
                       type="button"
                       onClick={() => actions.onOpenDetails(app)}
-                      className="min-w-0 text-left"
+                      className="min-w-0 text-start"
                     >
-                      <span className="block font-medium leading-snug text-film-50 hover:text-localizer-300">
+                      <span className="data-text block font-medium leading-snug text-film-50 hover:text-localizer-300">
                         <Highlight text={app.name} tokens={tokens} />
                       </span>
                       <span className="block text-[13px] text-film-500 md:hidden">
-                        {app.modality} — {app.tier === 'pro' ? 'Pro' : 'Free'}
+                        {app.modality}
+                        <span
+                          className={
+                            app.tier === 'pro' ? 'ms-2 font-semibold text-caliper' : 'ms-2'
+                          }
+                        >
+                          {app.tier === 'pro' ? t.common.pro : t.common.free}
+                        </span>
                       </span>
                       {app.duplicateOf && (
-                        <span className="block text-[13px] text-caliper-300/80">
+                        <span className="data-text block text-[13px] text-caliper-300/80">
                           {app.duplicateOf}
                         </span>
                       )}
@@ -84,12 +97,13 @@ export function Worklist({
                 <td className="hidden px-3 py-2.5 md:table-cell">
                   <TierAnnotation app={app} locked={locked} />
                 </td>
-                <td className="px-3 py-2.5 text-right">
+                <td className="px-3 py-2.5 text-end">
                   <LaunchButton
                     app={app}
                     locked={locked}
                     onLaunch={() => actions.onLaunch(app)}
                     onLocked={() => actions.onOpenDetails(app)}
+                    onIntent={() => actions.onIntent(app)}
                     className="whitespace-nowrap px-3 py-1.5"
                   />
                 </td>

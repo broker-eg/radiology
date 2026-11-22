@@ -1,3 +1,4 @@
+import { t } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import type { Tables, TablesInsert } from '@/types/database';
 import type { AppDraft, AppKind, AppStatus, AppTier, Category, SuiteApp } from '@/types/domain';
@@ -70,13 +71,58 @@ export async function removeFavorite(appId: string): Promise<void> {
 
 export class LockedGeneratorError extends Error {
   constructor() {
-    super('This generator is part of the Pro plan.');
+    super(t().workspace.lockedError);
     this.name = 'LockedGeneratorError';
   }
 }
 
+// Generators the person has opened stay on the device (Cache Storage), keyed by the app's
+// updated_at: a re-launch tomorrow is instant, and an admin edit gets a fresh copy. Only
+// files Storage already served to this account land here; signing out clears it.
+const GENERATOR_CACHE = 'radiology-generators-v1';
+
+function cacheKey(path: string, version: string): string {
+  return `${location.origin}/__generators/${encodeURIComponent(path)}?v=${encodeURIComponent(version)}`;
+}
+
+async function openGeneratorCache(): Promise<Cache | null> {
+  try {
+    return 'caches' in window ? await caches.open(GENERATOR_CACHE) : null;
+  } catch {
+    return null; // private mode / storage disabled: just download every time
+  }
+}
+
+export async function clearGeneratorCache(): Promise<void> {
+  try {
+    if ('caches' in window) await caches.delete(GENERATOR_CACHE);
+  } catch {
+    /* nothing cached */
+  }
+}
+
+/** A generator's HTML: from this device when this version was opened before, else Storage. */
+export async function fetchAppHtml(path: string, version: string): Promise<string> {
+  const cache = await openGeneratorCache();
+  const key = cacheKey(path, version);
+  const hit = await cache?.match(key).catch(() => undefined);
+  if (hit) return hit.text();
+
+  const html = await downloadAppHtml(path);
+  if (cache) {
+    void (async () => {
+      // Drop older versions of the same generator, then keep this one.
+      const prefix = `${location.origin}/__generators/${encodeURIComponent(path)}?`;
+      const stale = (await cache.keys()).filter((r) => r.url.startsWith(prefix));
+      await Promise.all(stale.map((r) => cache.delete(r)));
+      await cache.put(key, new Response(html, { headers: { 'content-type': 'text/html' } }));
+    })().catch(() => undefined);
+  }
+  return html;
+}
+
 /** Downloads a generator's HTML. Storage RLS refuses pro-tier files to Free accounts. */
-export async function fetchAppHtml(path: string): Promise<string> {
+async function downloadAppHtml(path: string): Promise<string> {
   const { data, error } = await supabase.storage.from(HTML_BUCKET).download(path);
   if (error) {
     // Storage answers "not found" for objects the caller's policy can't see.
@@ -114,8 +160,7 @@ export async function saveApp(draft: AppDraft, existing: SuiteApp | null): Promi
       });
     if (error) throw error;
   }
-  if (integrated && !htmlPath)
-    throw new Error('Upload the generator’s HTML file or paste its source.');
+  if (integrated && !htmlPath) throw new Error(t().form.htmlRequired);
 
   let coverPath = existing?.coverPath ?? null;
   if (draft.coverFile) {

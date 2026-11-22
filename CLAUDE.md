@@ -44,6 +44,26 @@ Read `README.md` first (what the app is, plans/roles, deploy). This file is the 
   `features/catalog/lib/launch.ts`) so uploaded HTML can't read the Supabase session.
 - First account to sign up becomes admin (`handle_new_user` trigger).
 
+## Interface conventions
+
+- **Strings**: no literal UI text in components. Add the key to `src/lib/i18n/en.ts` and the same
+  key to `ar.ts` (the `Messages` type enforces it), read it with `useT()` in components or
+  `t()` in hooks/services. Arabic counts use `count()` (Intl.PluralRules) in `ar.ts`.
+- **RTL**: logical utilities only — `ms-/me-/ps-/pe-/start-/end-/text-start/text-end/border-s`,
+  never `ml-/mr-/pl-/pr-/left-/right-/text-left`. Arrow icons that point along the reading
+  direction get `flip-rtl`. Database text (names, badges, descriptions) gets `data-text` so
+  English clips at its own end inside the Arabic layout.
+- **Theme**: colours are CSS variables (`src/styles/index.css`); use the `ink`, `film`,
+  `localizer`, `caliper` and `alert` classes, never hex. Dark is the default. `Viewport` is
+  always `scheme-dark` (images are dark films in both themes) — put `scheme-dark` on anything
+  drawn over an image.
+- **Tour**: steps find controls by `data-tour="…"` (first visible match wins) — keep those
+  attributes when restyling the header, hero search, browse area, tiles, Add generator, Install.
+- **Speed**: `apps/categories/profile/favorites` persist to localStorage (`lib/persistQueries`);
+  generator HTML lives in Cache Storage keyed by `updated_at` (`catalogService.fetchAppHtml`).
+  Both are cleared on `SIGNED_OUT` in `AuthProvider` — keep that if you add per-user caches.
+- Screens are checked at 390 px (phone) and 1440 px, in English/dark, English/light and Arabic.
+
 ## Gotchas
 
 - This Supabase project does **not** auto-grant new tables to `anon`/`authenticated`. Every
@@ -53,6 +73,8 @@ Read `README.md` first (what the app is, plans/roles, deploy). This file is the 
   turn it off (or add SMTP) in the dashboard. It can't be changed from SQL/MCP.
 - Migrations are forward-only once applied; keep local filenames equal to the remote
   version (`supabase/migrations/<version>_<name>.sql`).
-- Design language ("reading room"): grayscale film tones on navy; cyan = interactive/focus,
-  gold = Pro + the editor's signature. Metadata goes in image corners (`components/Viewport`)
-  like DICOM annotations. Archivo (with width axis) + Newsreader italic for the signature only.
+- Design language ("reading room"; light theme = "lightbox"): grayscale film tones on navy;
+  cyan = interactive/focus/tour arrows, gold = Pro + the editor's signature. Metadata goes in
+  image corners (`components/Viewport`) like DICOM annotations. Archivo (with width axis),
+  IBM Plex Sans Arabic for Arabic glyphs only, Newsreader italic for the signature only (its
+  font file is subset to the signature's letters — re-subset if that text changes).

@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { t } from '@/lib/i18n';
 
 // A one-slot toast store (the legacy suite showed one message at a time, bottom-right).
 type ToastState = { id: number; message: string; tone: 'info' | 'error' } | null;
@@ -21,7 +22,7 @@ function show(message: string, tone: 'info' | 'error') {
 export function errorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (error && typeof error === 'object' && 'message' in error) return String(error.message);
-  return 'Something went wrong';
+  return t().common.somethingWrong;
 }
 
 export const toast = {

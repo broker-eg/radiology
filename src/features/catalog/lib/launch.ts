@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+
 // Generators run in a sandboxed iframe WITHOUT allow-same-origin: they get an opaque
 // origin, so uploaded HTML can never read this site's storage (the Supabase session).
 // Everything the generators need still works: scripts, forms, print (modals), copy, and
@@ -20,14 +22,11 @@ function escapeText(value: string): string {
  */
 export function openGeneratorTab(title: string, loadHtml: () => Promise<string>): Promise<void> {
   const tab = window.open('', '_blank');
-  if (!tab)
-    return Promise.reject(
-      new Error('Allow pop-ups for this site to open generators in a new tab.'),
-    );
+  if (!tab) return Promise.reject(new Error(t().workspace.popupBlocked));
   tab.document.title = title;
   tab.document.body.style.cssText =
     'margin:0;background:#0A1220;color:#AEB9C8;font:14px system-ui;display:grid;place-items:center;height:100vh';
-  tab.document.body.textContent = 'Loading generator…';
+  tab.document.body.textContent = t().workspace.tabLoading;
 
   return loadHtml().then(
     (html) => {

@@ -7,7 +7,7 @@ import { catalogKeys } from '../hooks/useCatalog';
 export function fetchAppHtmlForTab(app: SuiteApp): Promise<string> {
   return queryClient.fetchQuery({
     queryKey: catalogKeys.html(app.id, app.htmlPath, app.updatedAt),
-    queryFn: () => fetchAppHtml(app.htmlPath as string),
+    queryFn: () => fetchAppHtml(app.htmlPath as string, app.updatedAt),
     staleTime: Infinity,
   });
 }

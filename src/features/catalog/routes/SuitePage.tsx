@@ -1,14 +1,15 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { LayoutGrid, List, Plus, Rows3, SlidersHorizontal } from 'lucide-react';
-import defaultHero from '@/assets/branding/hero.jpg';
+import { LayoutGrid, List, Plus, Rows3, Search, SlidersHorizontal, X } from 'lucide-react';
+import defaultHero from '@/assets/branding/hero.webp';
+import { Dialog } from '@/components/Dialog';
 import { SiteHeader } from '@/components/SiteHeader';
 import { useProfile, useSetHeroApp } from '@/features/auth/hooks/useProfile';
+import { useT } from '@/lib/i18n';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import type { SuiteApp } from '@/types/domain';
 import { AppDialog } from '../components/AppDialog';
-import { AppForm } from '../components/AppForm';
 import { AppTile, type AppActions } from '../components/AppTile';
 import { RefineControls, RegionList } from '../components/FilterControls';
 import { HeroViewport } from '../components/HeroViewport';
@@ -20,6 +21,7 @@ import {
   useCategories,
   useDeleteApp,
   useFavorites,
+  usePrefetchAppHtml,
   useToggleFavorite,
 } from '../hooks/useCatalog';
 import { coverOf } from '../lib/cover';
@@ -34,12 +36,15 @@ import {
   type ViewMode,
 } from '../lib/search';
 
+// Admin-only: kept out of everyone else's first load.
+const AppForm = lazy(() => import('../components/AppForm').then((m) => ({ default: m.AppForm })));
+
 const VIEW_KEY = 'radiology:view';
-const VIEWS: { value: ViewMode; label: string; icon: typeof LayoutGrid }[] = [
-  { value: 'regions', label: 'By region', icon: Rows3 },
-  { value: 'grid', label: 'Grid', icon: LayoutGrid },
-  { value: 'worklist', label: 'Worklist', icon: List },
-];
+const VIEW_ICONS: Record<ViewMode, typeof LayoutGrid> = {
+  regions: Rows3,
+  grid: LayoutGrid,
+  worklist: List,
+};
 
 function readView(): ViewMode {
   try {
@@ -51,6 +56,7 @@ function readView(): ViewMode {
 }
 
 export function SuitePage() {
+  const t = useT();
   const { profile, isAdmin, hasPro } = useProfile();
   const categoriesQ = useCategories();
   const appsQ = useApps();
@@ -62,9 +68,12 @@ export function SuitePage() {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [view, setView] = useState<ViewMode>(readView);
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set([DUPLICATES_REGION]));
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [form, setForm] = useState<{ existing: SuiteApp | null } | null>(null);
+  const [heroSearchVisible, setHeroSearchVisible] = useState(true);
   const searchRef = useRef<HTMLInputElement>(null);
+  const headerSearchRef = useRef<HTMLInputElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   // Details (?app=) and the running workspace (?run=) live in the URL: links are
   // shareable and the phone's back button closes them.
@@ -78,6 +87,7 @@ export function SuitePage() {
   const byId = useMemo(() => new Map(apps.map((a) => [a.id, a])), [apps]);
 
   const canLaunch = useCallback((app: SuiteApp) => hasPro || app.tier === 'free', [hasPro]);
+  const prefetch = usePrefetchAppHtml(canLaunch);
   const patch = useCallback((p: Partial<Filters>) => setFilters((f) => ({ ...f, ...p })), []);
   const ctx = useMemo(() => ({ favorites, canLaunch }), [favorites, canLaunch]);
   const filtered = useMemo(() => filterApps(apps, filters, ctx), [apps, filters, ctx]);
@@ -113,6 +123,7 @@ export function SuitePage() {
       toggleFavorite.mutate({ appId: app.id, favorite: !favorites.has(app.id) }),
     onOpenDetails: (app) => pushParam('app', app.id),
     onLaunch: (app) => pushParam('run', app.id),
+    onIntent: prefetch,
   };
 
   useEffect(() => {
@@ -123,7 +134,19 @@ export function SuitePage() {
     }
   }, [view]);
 
-  // "/" jumps to search, as in the legacy suite.
+  // Once the hero's search scrolls under the header, the header grows its own search field.
+  useEffect(() => {
+    const el = searchRef.current;
+    if (!el || !('IntersectionObserver' in window)) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setHeroSearchVisible(entry?.isIntersecting ?? true),
+      { rootMargin: '-64px 0px 0px 0px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  // "/" jumps to whichever search is on screen, as in the legacy suite.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = document.activeElement;
@@ -133,12 +156,12 @@ export function SuitePage() {
         el instanceof HTMLSelectElement;
       if (e.key === '/' && !typing && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
-        searchRef.current?.focus();
+        (heroSearchVisible ? searchRef : headerSearchRef).current?.focus();
       }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, []);
+  }, [heroSearchVisible]);
 
   const activeRefinements =
     Number(filters.modality !== 'All') +
@@ -160,11 +183,83 @@ export function SuitePage() {
       return next;
     });
 
-  const planLabel = isAdmin ? 'Admin access' : profile?.plan === 'pro' ? 'Pro plan' : 'Free plan';
+  // Typing in the header search while deep in the list: bring the top of the results up.
+  const queryFromHeader = (query: string) => {
+    patch({ query });
+    const top = resultsRef.current?.getBoundingClientRect().top ?? 0;
+    if (top < 0) window.scrollBy({ top: top - 72 });
+  };
+
+  const planLabel = isAdmin
+    ? t.suite.planAdmin
+    : profile?.plan === 'pro'
+      ? t.suite.planPro
+      : t.suite.planFree;
+  const views: { value: ViewMode; label: string }[] = [
+    { value: 'regions', label: t.suite.viewRegions },
+    { value: 'grid', label: t.suite.viewGrid },
+    { value: 'worklist', label: t.suite.viewWorklist },
+  ];
+
+  const sortSelect = (id: string, className?: string) => (
+    <select
+      id={id}
+      value={filters.sort}
+      onChange={(e) => patch({ sort: e.target.value as SortKey })}
+      className={cn(
+        'rounded-md border border-ink-600 bg-ink-900 px-2 py-1.5 text-sm text-film-100 focus:border-localizer focus:outline-none',
+        className,
+      )}
+      disabled={tokens.length > 0}
+      title={tokens.length > 0 ? t.suite.sortedByRelevance : undefined}
+    >
+      <option value="recommended">{t.suite.sortRecommended}</option>
+      <option value="az">{t.suite.sortAz}</option>
+      <option value="za">{t.suite.sortZa}</option>
+      <option value="integrated">{t.suite.sortIntegrated}</option>
+    </select>
+  );
+
+  const headerSearch = (
+    <div className="relative">
+      <Search
+        className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-localizer"
+        aria-hidden
+      />
+      <input
+        ref={headerSearchRef}
+        type="search"
+        autoComplete="off"
+        enterKeyHint="search"
+        tabIndex={heroSearchVisible ? -1 : 0}
+        value={filters.query}
+        onChange={(e) => queryFromHeader(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape' && filters.query) {
+            e.stopPropagation();
+            patch({ query: '' });
+          }
+        }}
+        placeholder={t.suite.searchLabel}
+        aria-label={t.suite.searchLabel}
+        className="w-full rounded-md border border-ink-600 bg-ink-950 py-1.5 pe-9 ps-9 text-base text-film-50 focus:border-localizer focus:outline-none sm:text-sm [&::-webkit-search-cancel-button]:hidden"
+      />
+      {filters.query && (
+        <button
+          type="button"
+          onClick={() => patch({ query: '' })}
+          className="absolute end-1 top-1/2 -translate-y-1/2 rounded p-1.5 text-film-400 hover:text-film-50"
+          aria-label={t.suite.clearSearch}
+        >
+          <X className="h-4 w-4" />
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <div className="min-h-screen">
-      <SiteHeader />
+      <SiteHeader search={headerSearch} showSearch={!heroSearchVisible} />
 
       <main className="mx-auto max-w-[1440px] px-4 pb-[max(4rem,env(safe-area-inset-bottom))] sm:px-6">
         <div className="pt-4 sm:pt-6">
@@ -183,13 +278,16 @@ export function SuitePage() {
           />
         </div>
 
-        <div className="mt-8 lg:grid lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-10">
+        <div className="mt-6 sm:mt-8 lg:grid lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-10">
           {/* Desktop: a PACS-style series list of body regions + refinements. */}
           <aside className="hidden lg:block">
-            <div className="sticky top-20 max-h-[calc(100vh-6rem)] space-y-8 overflow-y-auto pb-6 pr-1">
+            <div
+              className="sticky top-20 max-h-[calc(100vh-6rem)] space-y-8 overflow-y-auto pb-6 pe-1"
+              data-tour="browse"
+            >
               <section aria-labelledby="regions-heading">
                 <h2 id="regions-heading" className="mb-2 text-sm font-medium text-film-300">
-                  Body regions
+                  {t.suite.regionsHeading}
                 </h2>
                 <RegionList
                   categories={categories}
@@ -201,23 +299,24 @@ export function SuitePage() {
               </section>
               <RefineControls filters={filters} onChange={patch} showUnlockedToggle={!hasPro} />
               {isFiltered && (
-                <button type="button" className="btn-ghost -ml-3" onClick={resetFilters}>
-                  Clear all filters
+                <button type="button" className="btn-ghost -ms-3" onClick={resetFilters}>
+                  {t.suite.clearAll}
                 </button>
               )}
             </div>
           </aside>
 
-          <div className="min-w-0">
-            {/* Phones/tablets: regions scroll sideways; refinements fold away. */}
-            <div className="lg:hidden">
-              <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-3 [scrollbar-width:none] sm:-mx-6 sm:px-6">
+          <div className="min-w-0" ref={resultsRef}>
+            <div data-tour="browse">
+              {/* Phones/tablets: regions scroll sideways; refinements open in a sheet. */}
+              <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-3 [scrollbar-width:none] sm:-mx-6 sm:px-6 lg:hidden [&::-webkit-scrollbar]:hidden">
                 <button
                   type="button"
                   onClick={() => patch({ region: null })}
                   className={cn('chip shrink-0', !filters.region && 'chip-active')}
                 >
-                  All <span className="ml-1.5 tabular-nums text-film-500">{countAllRegions}</span>
+                  {t.suite.all}
+                  <span className="ms-1.5 tabular-nums text-film-500">{countAllRegions}</span>
                 </button>
                 {categories.map((c) => (
                   <button
@@ -226,143 +325,128 @@ export function SuitePage() {
                     onClick={() => patch({ region: filters.region === c.name ? null : c.name })}
                     className={cn('chip shrink-0', filters.region === c.name && 'chip-active')}
                   >
-                    <span className="mr-1.5" aria-hidden>
+                    <span className="me-1.5" aria-hidden>
                       {c.icon}
                     </span>
                     {c.name}
-                    <span className="ml-1.5 tabular-nums text-film-500">
+                    <span className="ms-1.5 tabular-nums text-film-500">
                       {regionCounts.get(c.name) ?? 0}
                     </span>
                   </button>
                 ))}
               </div>
-              {showMobileFilters && (
-                <div className="mb-4 rounded-md border border-ink-700 bg-ink-850 p-4">
-                  <RefineControls filters={filters} onChange={patch} showUnlockedToggle={!hasPro} />
-                </div>
-              )}
-            </div>
 
-            <div className="mb-6 flex flex-wrap items-center gap-2 border-b border-ink-700 pb-3">
-              <p className="mr-auto text-sm text-film-400" aria-live="polite">
-                <span className="font-semibold tabular-nums text-film-50">{filtered.length}</span>{' '}
-                {filtered.length === 1 ? 'generator' : 'generators'}
-                {filters.region && <> in {filters.region}</>}
-                {isFiltered && (
-                  <button
-                    type="button"
-                    onClick={resetFilters}
-                    className="ml-2 text-localizer hover:underline"
-                  >
-                    Clear filters
-                  </button>
-                )}
-              </p>
-              <button
-                type="button"
-                className="btn-quiet px-2.5 lg:hidden"
-                onClick={() => setShowMobileFilters((v) => !v)}
-                aria-expanded={showMobileFilters}
-              >
-                <SlidersHorizontal className="h-4 w-4" aria-hidden />
-                Filters{activeRefinements > 0 && ` (${activeRefinements})`}
-              </button>
-              <label className="sr-only" htmlFor="sort">
-                Sort
-              </label>
-              <select
-                id="sort"
-                value={filters.sort}
-                onChange={(e) => patch({ sort: e.target.value as SortKey })}
-                className="rounded-md border border-ink-600 bg-ink-900 px-2 py-1.5 text-sm text-film-100 focus:border-localizer focus:outline-none"
-                disabled={tokens.length > 0}
-                title={tokens.length > 0 ? 'Search results are sorted by relevance' : undefined}
-              >
-                <option value="recommended">Recommended order</option>
-                <option value="az">Name A–Z</option>
-                <option value="za">Name Z–A</option>
-                <option value="integrated">In-suite first</option>
-              </select>
-              <div
-                className="inline-flex rounded-md border border-ink-600 p-0.5"
-                role="group"
-                aria-label="View"
-              >
-                {VIEWS.map(({ value, label, icon: Icon }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    aria-pressed={view === value}
-                    onClick={() => setView(value)}
-                    title={label}
-                    className={cn(
-                      'inline-flex items-center gap-1.5 rounded px-2 py-1 text-[13px] transition-colors',
-                      view === value
-                        ? 'bg-ink-700 text-film-50'
-                        : 'text-film-400 hover:text-film-100',
-                    )}
-                  >
-                    <Icon className="h-4 w-4" aria-hidden />
-                    <span className="hidden xl:inline">{label}</span>
-                    <span className="sr-only xl:hidden">{label}</span>
-                  </button>
-                ))}
-              </div>
-              {isAdmin && (
+              <div className="mb-5 flex flex-wrap items-center gap-2 border-b border-ink-700 pb-3 sm:mb-6">
+                <p className="me-auto text-sm text-film-400" aria-live="polite">
+                  <span className="font-semibold tabular-nums text-film-50">
+                    {t.suite.count(filtered.length)}
+                  </span>
+                  {filters.region && t.suite.inRegion(filters.region)}
+                  {isFiltered && (
+                    <button
+                      type="button"
+                      onClick={resetFilters}
+                      className="ms-2 text-localizer hover:underline"
+                    >
+                      {t.suite.clearFilters}
+                    </button>
+                  )}
+                </p>
                 <button
                   type="button"
-                  className="btn-primary px-3"
-                  onClick={() => setForm({ existing: null })}
+                  className={cn(
+                    'btn-quiet px-2.5 lg:hidden',
+                    activeRefinements > 0 && 'border-localizer/60 text-localizer-300',
+                  )}
+                  onClick={() => setShowFilters(true)}
                 >
-                  <Plus className="h-4 w-4" aria-hidden />
-                  <span className="hidden sm:inline">Add generator</span>
-                  <span className="sr-only sm:hidden">Add generator</span>
+                  <SlidersHorizontal className="h-4 w-4" aria-hidden />
+                  {t.suite.filters}
+                  {activeRefinements > 0 && (
+                    <span className="grid h-5 min-w-5 place-items-center rounded-full bg-localizer px-1 text-[12px] font-semibold tabular-nums text-ink-950">
+                      {activeRefinements}
+                    </span>
+                  )}
                 </button>
-              )}
+                <label className="sr-only" htmlFor="sort">
+                  {t.suite.sort}
+                </label>
+                {sortSelect('sort', 'hidden lg:block')}
+                <div className="segmented" role="group" aria-label={t.suite.view}>
+                  {views.map(({ value, label }) => {
+                    const Icon = VIEW_ICONS[value];
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        aria-pressed={view === value}
+                        onClick={() => setView(value)}
+                        title={label}
+                        className="segment px-2 touch:px-2.5"
+                      >
+                        <Icon className="h-4 w-4" aria-hidden />
+                        <span className="hidden xl:inline">{label}</span>
+                        <span className="sr-only xl:hidden">{label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    data-tour="add"
+                    className="btn-primary px-3"
+                    onClick={() => setForm({ existing: null })}
+                  >
+                    <Plus className="h-4 w-4" aria-hidden />
+                    <span className="hidden sm:inline">{t.suite.addGenerator}</span>
+                    <span className="sr-only sm:hidden">{t.suite.addGenerator}</span>
+                  </button>
+                )}
+              </div>
             </div>
 
-            {appsQ.isLoading || categoriesQ.isLoading ? (
+            {(appsQ.isLoading || categoriesQ.isLoading) && !apps.length ? (
               <div
                 className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3"
                 aria-busy="true"
               >
                 {Array.from({ length: 6 }, (_, i) => (
-                  <div key={i} className="animate-pulse">
-                    <div className="aspect-[16/10] rounded-md bg-ink-800" />
-                    <div className="mt-3 h-4 w-3/4 rounded bg-ink-800" />
-                    <div className="mt-2 h-3 w-full rounded bg-ink-850" />
+                  <div
+                    key={i}
+                    className="grid animate-pulse grid-cols-[6.5rem_1fr] gap-3.5 sm:block"
+                  >
+                    <div className="h-[5.5rem] rounded-md bg-ink-800 sm:aspect-[16/10] sm:h-auto" />
+                    <div>
+                      <div className="h-4 w-3/4 rounded bg-ink-800 sm:mt-3" />
+                      <div className="mt-2 h-3 w-full rounded bg-ink-850" />
+                    </div>
                   </div>
                 ))}
               </div>
-            ) : appsQ.isError ? (
+            ) : appsQ.isError && !apps.length ? (
               <div className="rounded-md border border-alert/40 p-6 text-center">
-                <p className="text-film-100">
-                  The catalog didn’t load. Check your connection and try again.
-                </p>
+                <p className="text-film-100">{t.suite.catalogError}</p>
                 <button
                   type="button"
                   className="btn-quiet mt-3"
                   onClick={() => void appsQ.refetch()}
                 >
-                  Try again
+                  {t.common.tryAgain}
                 </button>
               </div>
             ) : filtered.length === 0 ? (
               <div className="rounded-md border border-dashed border-ink-600 px-6 py-14 text-center">
-                <p className="text-lg font-semibold text-film-50">
-                  No generator matches these filters
-                </p>
-                <p className="mt-1 text-sm text-film-400">
-                  Try a scoring system (LI-RADS), an organ (adrenal) or an exam (MRCP).
-                </p>
+                <p className="text-lg font-semibold text-film-50">{t.suite.emptyTitle}</p>
+                <p className="mt-1 text-sm text-film-400">{t.suite.emptyHint}</p>
                 <button type="button" className="btn-primary mt-5" onClick={resetFilters}>
-                  Show all generators
+                  {t.suite.showAll}
                 </button>
               </div>
             ) : view === 'worklist' ? (
               <Worklist apps={filtered} tokens={tokens} actions={actions} />
             ) : view === 'grid' ? (
-              <div className="grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-x-5 gap-y-5 sm:grid-cols-2 sm:gap-y-8 xl:grid-cols-3">
                 {filtered.map((app) => (
                   <AppTile key={app.id} app={app} tokens={tokens} showRegion actions={actions} />
                 ))}
@@ -392,9 +476,47 @@ export function SuitePage() {
       </main>
 
       <footer className="border-t border-ink-700 px-4 py-6 text-center text-sm text-film-500">
-        Structured reporting suite{' '}
-        <span className="font-serif italic text-caliper/80">edited by Dr. Yasser Shalaby, MD</span>
+        {t.brand.footer}{' '}
+        <span className="font-serif italic text-caliper/80">
+          <span className="rtl:font-sans rtl:not-italic">{t.brand.footerEditedBy}</span>
+          <span dir="ltr">Dr. Yasser Shalaby, MD</span>
+        </span>
       </footer>
+
+      {/* Phones/tablets: refinements as a bottom sheet, with the result count on the button. */}
+      <Dialog
+        open={showFilters}
+        onClose={() => setShowFilters(false)}
+        title={t.suite.filters}
+        size="md"
+        compact
+        footer={
+          <div className="flex items-center gap-2">
+            {isFiltered && (
+              <button type="button" className="btn-ghost -ms-3" onClick={resetFilters}>
+                {t.suite.clearAll}
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn-primary ms-auto min-w-[55%] touch:min-h-11"
+              onClick={() => setShowFilters(false)}
+            >
+              {t.suite.showResults(filtered.length)}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-5">
+          <RefineControls filters={filters} onChange={patch} showUnlockedToggle={!hasPro} />
+          <div>
+            <label htmlFor="sort-sheet" className="mb-2 block text-sm font-medium text-film-300">
+              {t.suite.sort}
+            </label>
+            {sortSelect('sort-sheet', 'field')}
+          </div>
+        </div>
+      </Dialog>
 
       {detailApp && (
         <AppDialog
@@ -405,10 +527,11 @@ export function SuitePage() {
           isAdmin={isAdmin}
           onClose={() => closeParam('app')}
           onLaunch={() => pushParam('run', detailApp.id)}
+          onIntent={() => prefetch(detailApp)}
           onToggleFavorite={() => actions.onToggleFavorite(detailApp)}
           onSetHero={(id) =>
             setHero.mutate(id, {
-              onSuccess: () => toast.info(id ? 'Home cover updated' : 'Default cover restored'),
+              onSuccess: () => toast.info(id ? t.toast.coverUpdated : t.toast.coverRestored),
             })
           }
           onEdit={() => setForm({ existing: detailApp })}
@@ -418,20 +541,22 @@ export function SuitePage() {
       )}
 
       {runApp && runApp.kind === 'integrated' && (
-        <Workspace app={runApp} onClose={() => closeParam('run')} />
+        <Workspace app={runApp} allowed={canLaunch(runApp)} onClose={() => closeParam('run')} />
       )}
 
       {form && (
-        <AppForm
-          existing={form.existing}
-          categories={categories}
-          modalities={modalities}
-          onClose={() => setForm(null)}
-          onSaved={(id) => {
-            setForm(null);
-            if (!form.existing) pushParam('app', id);
-          }}
-        />
+        <Suspense fallback={null}>
+          <AppForm
+            existing={form.existing}
+            categories={categories}
+            modalities={modalities}
+            onClose={() => setForm(null)}
+            onSaved={(id) => {
+              setForm(null);
+              if (!form.existing) pushParam('app', id);
+            }}
+          />
+        </Suspense>
       )}
     </div>
   );

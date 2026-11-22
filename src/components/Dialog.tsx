@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 interface DialogProps {
@@ -12,6 +13,8 @@ interface DialogProps {
   size?: 'md' | 'lg' | 'xl';
   /** Short content: a bottom sheet on phones instead of a full-screen page. */
   compact?: boolean;
+  /** Actions pinned under the scrolling body — within thumb reach on phones. */
+  footer?: ReactNode;
   children: ReactNode;
 }
 
@@ -28,8 +31,10 @@ export function Dialog({
   context,
   size = 'lg',
   compact = false,
+  footer,
   children,
 }: DialogProps) {
+  const t = useT();
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
@@ -60,7 +65,7 @@ export function Dialog({
   return createPortal(
     <div
       className={cn(
-        'fixed inset-0 z-50 flex justify-center bg-ink-950/85 backdrop-blur-sm sm:items-center sm:p-6',
+        'scrim fixed inset-0 z-50 flex animate-fade justify-center backdrop-blur-sm sm:items-center sm:p-6',
         compact ? 'items-end' : 'items-stretch',
       )}
       onMouseDown={(e) => {
@@ -74,12 +79,20 @@ export function Dialog({
         aria-labelledby={titleId}
         tabIndex={-1}
         className={cn(
-          'flex w-full animate-sheet-in flex-col overflow-hidden border-ink-700 bg-ink-850 outline-none sm:max-h-[92vh] sm:rounded-lg sm:border sm:shadow-2xl sm:shadow-black/70',
+          'flex w-full flex-col overflow-hidden border-ink-700 bg-ink-850 outline-none sm:max-h-[92vh] sm:animate-sheet-in sm:rounded-lg sm:border sm:shadow-2xl sm:shadow-black/40',
           SIZES[size],
-          compact && 'max-h-[90vh] rounded-t-xl border-t',
+          compact ? 'max-h-[88vh] animate-rise-in rounded-t-xl border-t' : 'animate-sheet-in',
         )}
       >
-        <header className="flex items-start justify-between gap-3 border-b border-ink-700 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-5 sm:pt-3">
+        {compact && (
+          <span aria-hidden className="mx-auto mt-2 h-1 w-10 rounded-full bg-ink-600 sm:hidden" />
+        )}
+        <header
+          className={cn(
+            'flex items-start justify-between gap-3 border-b border-ink-700 px-4 pb-3 sm:px-5 sm:pt-3',
+            compact ? 'pt-2' : 'pt-[max(0.75rem,env(safe-area-inset-top))]',
+          )}
+        >
           <div className="min-w-0">
             {context && <p className="text-sm text-film-400">{context}</p>}
             <h2 id={titleId} className="text-lg font-semibold leading-snug text-film-50">
@@ -89,15 +102,25 @@ export function Dialog({
           <button
             type="button"
             onClick={onClose}
-            className="btn-ghost -mr-2 px-2"
-            aria-label="Close"
+            className="btn-ghost -me-2 px-2"
+            aria-label={t.common.close}
           >
             <X className="h-5 w-5" />
           </button>
         </header>
-        <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-5 sm:py-5">
+        <div
+          className={cn(
+            'flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5 sm:py-5',
+            !footer && 'pb-[max(1rem,env(safe-area-inset-bottom))]',
+          )}
+        >
           {children}
         </div>
+        {footer && (
+          <div className="border-t border-ink-700 bg-ink-850 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-5">
+            {footer}
+          </div>
+        )}
       </div>
     </div>,
     document.body,

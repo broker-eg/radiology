@@ -1,3 +1,4 @@
+import { useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { Category } from '@/types/domain';
 import { MODALITIES, type Filters, type ModalityFilter, type SourceFilter } from '../lib/search';
@@ -17,6 +18,7 @@ export function RegionList({
   filters: Filters;
   onChange: Patch;
 }) {
+  const t = useT();
   const item = (label: string, icon: string | null, count: number, value: string | null) => {
     const active = filters.region === value;
     return (
@@ -26,7 +28,7 @@ export function RegionList({
           onClick={() => onChange({ region: value })}
           aria-current={active ? 'true' : undefined}
           className={cn(
-            'flex w-full items-center gap-2.5 border-l-2 py-1.5 pl-3 pr-2 text-left text-sm transition-colors',
+            'flex w-full items-center gap-2.5 border-s-2 py-1.5 pe-2 ps-3 text-start text-sm transition-colors',
             active
               ? 'border-localizer bg-localizer/5 text-film-50'
               : 'border-transparent text-film-400 hover:border-ink-600 hover:text-film-100',
@@ -47,17 +49,11 @@ export function RegionList({
   };
   return (
     <ul className="space-y-0.5">
-      {item('All regions', null, total, null)}
+      {item(t.suite.allRegions, null, total, null)}
       {categories.map((c) => item(c.name, c.icon, counts.get(c.name) ?? 0, c.name))}
     </ul>
   );
 }
-
-const SOURCES: { value: SourceFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'integrated', label: 'In the suite' },
-  { value: 'external', label: 'AWS Quick' },
-];
 
 export function RefineControls({
   filters,
@@ -68,10 +64,16 @@ export function RefineControls({
   onChange: Patch;
   showUnlockedToggle: boolean;
 }) {
+  const t = useT();
+  const sources: { value: SourceFilter; label: string }[] = [
+    { value: 'all', label: t.filters.sourceAll },
+    { value: 'integrated', label: t.filters.sourceIntegrated },
+    { value: 'external', label: t.filters.sourceExternal },
+  ];
   return (
     <div className="space-y-5">
       <fieldset>
-        <legend className="mb-2 text-sm font-medium text-film-300">Modality</legend>
+        <legend className="mb-2 text-sm font-medium text-film-300">{t.filters.modality}</legend>
         <div className="flex flex-wrap gap-1.5">
           {(['All', ...MODALITIES] as ModalityFilter[]).map((m) => (
             <button
@@ -81,27 +83,22 @@ export function RefineControls({
               onClick={() => onChange({ modality: m })}
               className={cn('chip', filters.modality === m && 'chip-active')}
             >
-              {m}
+              {m === 'All' ? t.suite.all : m}
             </button>
           ))}
         </div>
       </fieldset>
 
       <fieldset>
-        <legend className="mb-2 text-sm font-medium text-film-300">Where it runs</legend>
-        <div className="inline-flex rounded-md border border-ink-600 p-0.5">
-          {SOURCES.map((s) => (
+        <legend className="mb-2 text-sm font-medium text-film-300">{t.filters.whereRuns}</legend>
+        <div className="segmented">
+          {sources.map((s) => (
             <button
               key={s.value}
               type="button"
               aria-pressed={filters.source === s.value}
               onClick={() => onChange({ source: s.value })}
-              className={cn(
-                'rounded px-2.5 py-1 text-[13px] transition-colors',
-                filters.source === s.value
-                  ? 'bg-ink-700 text-film-50'
-                  : 'text-film-400 hover:text-film-100',
-              )}
+              className="segment"
             >
               {s.label}
             </button>
@@ -111,13 +108,13 @@ export function RefineControls({
 
       <div className="space-y-2.5">
         <Toggle
-          label="Favorites only"
+          label={t.filters.favoritesOnly}
           checked={filters.favoritesOnly}
           onChange={(v) => onChange({ favoritesOnly: v })}
         />
         {showUnlockedToggle && (
           <Toggle
-            label="Only generators on my plan"
+            label={t.filters.unlockedOnly}
             checked={filters.unlockedOnly}
             onChange={(v) => onChange({ unlockedOnly: v })}
           />
@@ -137,12 +134,12 @@ function Toggle({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2.5 text-sm text-film-300 hover:text-film-100">
+    <label className="flex cursor-pointer items-center gap-2.5 text-sm text-film-300 hover:text-film-100 touch:min-h-9">
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="h-4 w-4 rounded border-ink-600 bg-ink-950 accent-[#4FD1E8]"
+        className="h-4 w-4 rounded border-ink-600 bg-ink-950 accent-localizer touch:h-5 touch:w-5"
       />
       {label}
     </label>

@@ -20,14 +20,14 @@ export function RegionSection({
 }) {
   const panelId = `region-${category.sortOrder}`;
   return (
-    <section className="border-t border-ink-700 pt-4">
+    <section className="defer-render border-t border-ink-700 pt-4">
       <h2>
         <button
           type="button"
           onClick={onToggle}
           aria-expanded={!collapsed}
           aria-controls={panelId}
-          className="group flex w-full items-start gap-3 text-left"
+          className="group flex w-full items-start gap-3 text-start"
         >
           <span className="mt-0.5 text-xl leading-none" aria-hidden>
             {category.icon}
@@ -40,7 +40,7 @@ export function RegionSection({
               <span className="text-sm tabular-nums text-film-500">{apps.length}</span>
             </span>
             {category.subtitle && (
-              <span className="mt-0.5 block text-sm font-normal text-film-400">
+              <span className="data-text mt-0.5 block text-sm font-normal text-film-400">
                 {category.subtitle}
               </span>
             )}
@@ -48,7 +48,7 @@ export function RegionSection({
           <ChevronDown
             className={cn(
               'mt-1.5 h-5 w-5 shrink-0 text-film-500 transition-transform',
-              collapsed && '-rotate-90',
+              collapsed && '-rotate-90 rtl:rotate-90',
             )}
             aria-hidden
           />
@@ -57,7 +57,7 @@ export function RegionSection({
       {!collapsed && (
         <div
           id={panelId}
-          className="mt-5 grid grid-cols-1 gap-x-5 gap-y-8 pb-6 sm:grid-cols-2 xl:grid-cols-3"
+          className="mt-4 grid grid-cols-1 gap-x-5 gap-y-5 pb-6 sm:mt-5 sm:grid-cols-2 sm:gap-y-8 xl:grid-cols-3"
         >
           {apps.map((app) => (
             <AppTile key={app.id} app={app} tokens={tokens} showRegion={false} actions={actions} />

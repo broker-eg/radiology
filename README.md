@@ -7,10 +7,23 @@ GitHub Pages with a Supabase backend.
 - **93 generators** in 12 body regions: 69 run inside the suite (sandboxed), 24 open AWS Quick.
 - **Accounts & plans**: anyone can sign up on **Free**; **Pro** unlocks every generator.
   Admins move users between plans in the **Users** portal (`#/admin`).
-- **Welcome tour**: a 4-step intro opens on a new account's first sign-in (remembered per user
-  in `profiles.onboarded_at`); the **?** in the header shows it again.
-- **Installable**: works on desktop and phones, and installs as an app from the browser
-  (Android/desktop Chrome & Edge: _Install app_; iPhone/iPad Safari: _Share → Add to Home Screen_).
+- **Tour with arrows**: on a new account's first sign-in (remembered per user in
+  `profiles.onboarded_at`) the tour frames each real control — search, regions/filters, a
+  generator, your plan, Install, the **?** — with an ROI box and an arrow annotation. The **?**
+  in the header replays it.
+- **Installable, suggested from the first visit**: an install sheet appears on the sign-in screen
+  too (once per visit; _Not now_ snoozes it for 3 days). Chrome/Edge get one-tap _Install_;
+  Safari (iOS ≤ 18 and 26+), iPad, Chrome on iOS and Android browsers get their own steps with
+  an arrow at the browser button to tap; in-app browsers are told to open Safari/Chrome first.
+- **English or Arabic, dark or light**: English + dark is the default; both are switched from the
+  account menu (or the corner of the sign-in screen) and remembered per device. Arabic flips the
+  whole interface to right-to-left; catalog text from the database stays as written.
+- **Phone-first**: compact generator rows, a search that moves into the header as you scroll,
+  filters in a bottom sheet, the Launch button pinned in the details sheet, 40 px+ touch targets.
+- **Fast on repeat visits**: the catalog paints from the last visit's copy while it refreshes;
+  opened generators are kept on the device per version; covers, fonts and the app shell are
+  cached by the service worker (slow network → saved shell after 2.5 s). All of it is wiped on
+  sign-out.
 
 ## Stack
 
@@ -86,6 +99,10 @@ SUPABASE_URL=… SUPABASE_TOKEN=<admin access token> node scripts/seed-remote.mj
 scripts/make-icons.sh            # re-render the app icons from public/*.svg
 ```
 
+The extractor writes the branding images as JPEG; the app ships WebP. Re-encode with
+`nix shell --inputs-from . nixpkgs#libwebp -c cwebp -q 72 hero.jpg -o hero.webp` (portrait:
+`-resize 160 160`) and delete the JPEGs.
+
 ## Layout
 
 ```
@@ -95,6 +112,9 @@ scripts/                        legacy import, icons, RLS check
 public/                         manifest, service worker, icons
 src/app/                        config (env), providers (auth, query)
 src/features/auth|catalog|admin api/ (only place that imports Supabase) → hooks/ → components/ → routes/
-src/components/                 shared UI (Dialog, Viewport, SiteHeader, InstallButton…)
-src/lib/                        supabase client, query client, toast, PWA helpers
+src/components/                 shared UI (Dialog, Viewport, SiteHeader, AccountMenu, InstallPrompt…)
+src/features/onboarding/        the arrow tour (CoachTour)
+src/lib/                        supabase client, query client (+ persistence), toast, PWA, theme
+src/lib/i18n/                   en.ts (source of truth) + ar.ts — every interface string
+src/assets/fonts/               self-hosted Archivo, Plex Arabic, signature-subset Newsreader
 ```

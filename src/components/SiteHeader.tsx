@@ -1,9 +1,12 @@
+import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
-import { CircleHelp, LogOut, ShieldCheck } from 'lucide-react';
-import portraitUrl from '@/assets/branding/portrait.jpg';
-import { useProfile, useSignOut } from '@/features/auth/hooks/useProfile';
+import { CircleHelp } from 'lucide-react';
+import portraitUrl from '@/assets/branding/portrait.webp';
+import { useProfile } from '@/features/auth/hooks/useProfile';
+import { useT } from '@/lib/i18n';
 import { openTour } from '@/lib/tour';
 import { cn } from '@/lib/utils';
+import { AccountMenu } from './AccountMenu';
 import { InstallButton } from './InstallButton';
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -12,81 +15,98 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
     isActive ? 'text-film-50' : 'text-film-400 hover:text-film-100',
   );
 
-export function SiteHeader() {
-  const { profile, email, isAdmin, hasPro } = useProfile();
-  const signOut = useSignOut();
+interface SiteHeaderProps {
+  /** A compact search field; shown once the page's own search has scrolled away. */
+  search?: ReactNode;
+  showSearch?: boolean;
+}
+
+export function SiteHeader({ search, showSearch = false }: SiteHeaderProps) {
+  const t = useT();
+  const { profile, isAdmin, hasPro } = useProfile();
+  const searching = !!search && showSearch;
 
   return (
     <header className="sticky top-0 z-40 border-b border-ink-700 bg-ink-900/90 pt-[env(safe-area-inset-top)] backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-[1440px] items-center gap-3 px-4 sm:px-6">
-        <NavLink to="/" className="flex min-w-0 items-center gap-2.5">
+        <NavLink
+          to="/"
+          className={cn('flex min-w-0 items-center gap-2.5', searching && 'max-sm:hidden')}
+        >
           <img
             src={portraitUrl}
             alt=""
+            width={36}
+            height={36}
             className="h-9 w-9 shrink-0 rounded-sm object-cover object-top ring-1 ring-caliper/40"
           />
           <span className="min-w-0 leading-tight">
             <span className="type-condensed block truncate text-lg font-semibold text-film-50">
-              <span className="sm:hidden">Radiology Suite</span>
-              <span className="hidden sm:inline">Radiology Reporting Suite</span>
+              <span className="sm:hidden">{t.brand.short}</span>
+              <span className="hidden sm:inline">{t.brand.name}</span>
             </span>
-            <span className="hidden truncate font-serif text-sm italic text-caliper sm:block">
+            <span
+              className="hidden truncate font-serif text-sm italic text-caliper sm:block"
+              dir="ltr"
+            >
               Dr. Yasser Shalaby, MD
             </span>
           </span>
         </NavLink>
 
-        <nav className="ml-4 hidden items-center gap-1 md:flex" aria-label="Main">
+        <nav className="ms-4 hidden items-center gap-1 md:flex" aria-label="Main">
           <NavLink to="/" end className={navClass}>
-            Generators
+            {t.header.generators}
           </NavLink>
           {isAdmin && (
             <NavLink to="/admin" className={navClass}>
-              Users
+              {t.header.users}
             </NavLink>
           )}
         </nav>
 
-        <div className="ml-auto flex items-center gap-1 sm:gap-2">
+        {search && (
+          <div
+            className={cn(
+              'min-w-0 flex-1 transition-opacity duration-200 md:mx-auto md:max-w-md',
+              searching ? 'opacity-100' : 'pointer-events-none opacity-0 max-sm:hidden',
+            )}
+            aria-hidden={!searching}
+          >
+            {search}
+          </div>
+        )}
+
+        <div className="ms-auto flex shrink-0 items-center gap-1 sm:gap-2">
+          <InstallButton className="hidden lg:inline-flex" />
           <button
             type="button"
+            data-tour="help"
             className="btn-ghost px-2.5"
             onClick={openTour}
-            aria-label="Show the welcome tour"
-            title="Welcome tour"
+            aria-label={t.header.help}
+            title={t.header.help}
           >
-            <CircleHelp className="h-4 w-4" />
+            <CircleHelp className="h-[18px] w-[18px]" />
           </button>
-          <InstallButton />
-          {isAdmin && (
-            <NavLink to="/admin" className="btn-ghost px-2.5 md:hidden" aria-label="Users">
-              <ShieldCheck className="h-4 w-4" />
-            </NavLink>
-          )}
           {profile && (
             <span
+              data-tour="plan"
               className={cn(
                 'rounded-full border px-2.5 py-0.5 text-[13px] font-medium',
                 hasPro ? 'border-caliper/50 text-caliper' : 'border-ink-600 text-film-300',
+                searching && 'max-sm:hidden',
               )}
-              title={isAdmin ? 'Admins can open every generator' : undefined}
+              title={isAdmin ? t.header.adminHint : undefined}
             >
-              {isAdmin ? 'Admin' : profile.plan === 'pro' ? 'Pro' : 'Free'}
+              {isAdmin
+                ? t.header.planAdmin
+                : profile.plan === 'pro'
+                  ? t.header.planPro
+                  : t.header.planFree}
             </span>
           )}
-          <span className="hidden max-w-[180px] truncate text-sm text-film-400 lg:block">
-            {email}
-          </span>
-          <button
-            type="button"
-            className="btn-ghost px-2.5"
-            onClick={() => signOut.mutate()}
-            disabled={signOut.isPending}
-          >
-            <LogOut className="h-4 w-4" aria-hidden />
-            <span className="hidden sm:inline">Sign out</span>
-            <span className="sr-only sm:hidden">Sign out</span>
-          </button>
+          <AccountMenu />
         </div>
       </div>
     </header>

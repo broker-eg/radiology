@@ -5,7 +5,8 @@ import { FullScreenLoader } from '@/components/FullScreenLoader';
 import { AuthScreen } from '@/features/auth/components/AuthScreen';
 import { useProfile } from '@/features/auth/hooks/useProfile';
 import { SuitePage } from '@/features/catalog/routes/SuitePage';
-import { WelcomeTour } from '@/features/onboarding/components/WelcomeTour';
+import { CoachTour } from '@/features/onboarding/components/CoachTour';
+import { useT } from '@/lib/i18n';
 
 // Only admins ever open the user portal — keep it out of everyone else's first load.
 const AdminPage = lazy(() =>
@@ -19,6 +20,7 @@ function RequireAdmin({ children }: { children: JSX.Element }) {
 }
 
 export default function App() {
+  const t = useT();
   const { session, loading } = useAuth();
 
   if (loading) return <FullScreenLoader />;
@@ -33,7 +35,7 @@ export default function App() {
           path="/admin"
           element={
             <RequireAdmin>
-              <Suspense fallback={<FullScreenLoader label="Loading users" />}>
+              <Suspense fallback={<FullScreenLoader label={t.brand.loadingUsers} />}>
                 <AdminPage />
               </Suspense>
             </RequireAdmin>
@@ -41,7 +43,7 @@ export default function App() {
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      <WelcomeTour />
+      <CoachTour />
     </HashRouter>
   );
 }

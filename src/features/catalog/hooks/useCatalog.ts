@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
 import { useAuth } from '@/app/providers/authContext';
+import { t } from '@/lib/i18n';
 import { toast } from '@/lib/toast';
 import type { AppDraft, SuiteApp } from '@/types/domain';
 import {
@@ -67,21 +69,43 @@ export function useToggleFavorite() {
       if (context?.previous) qc.setQueryData(key, context.previous);
     },
     onSuccess: (_data, { favorite }) =>
-      toast.info(favorite ? 'Added to favorites' : 'Removed from favorites'),
+      toast.info(favorite ? t().toast.favoriteAdded : t().toast.favoriteRemoved),
     onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
 }
 
-/** The generator's HTML, cached for the session (keyed by the app's last update). */
+function htmlQuery(app: SuiteApp) {
+  return {
+    queryKey: catalogKeys.html(app.id, app.htmlPath, app.updatedAt),
+    queryFn: () => fetchAppHtml(app.htmlPath as string, app.updatedAt),
+    staleTime: Infinity,
+    gcTime: 30 * 60_000,
+    retry: false,
+  } as const;
+}
+
+/** The generator's HTML (memory → this device → Storage), keyed by the app's last update. */
 export function useAppHtml(app: SuiteApp | null, enabled: boolean) {
   return useQuery({
     queryKey: catalogKeys.html(app?.id ?? '', app?.htmlPath ?? null, app?.updatedAt ?? ''),
-    queryFn: () => fetchAppHtml(app?.htmlPath as string),
+    queryFn: () => fetchAppHtml(app?.htmlPath as string, app?.updatedAt ?? ''),
     enabled: enabled && !!app?.htmlPath,
     staleTime: Infinity,
     gcTime: 30 * 60_000,
     retry: false,
   });
+}
+
+/** Starts loading a generator the person is about to launch (hover, focus, details open). */
+export function usePrefetchAppHtml(canLaunch: (app: SuiteApp) => boolean) {
+  const qc = useQueryClient();
+  return useCallback(
+    (app: SuiteApp) => {
+      if (app.kind !== 'integrated' || !app.htmlPath || !canLaunch(app)) return;
+      void qc.prefetchQuery(htmlQuery(app));
+    },
+    [qc, canLaunch],
+  );
 }
 
 export function useSaveApp() {
@@ -99,7 +123,7 @@ export function useDeleteApp() {
   return useMutation({
     mutationFn: (app: SuiteApp) => deleteApp(app),
     onSuccess: (_d, app) => {
-      toast.info(`Deleted ${app.name}`);
+      toast.info(t().toast.deleted(app.name));
       void qc.invalidateQueries({ queryKey: catalogKeys.apps });
       void qc.invalidateQueries({ queryKey: ['favorites'] });
       void qc.invalidateQueries({ queryKey: ['profile'] });

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowLeft, ExternalLink, Loader2, Lock, Maximize2 } from 'lucide-react';
+import { useT } from '@/lib/i18n';
 import { toast } from '@/lib/toast';
 import type { SuiteApp } from '@/types/domain';
 import { LockedGeneratorError } from '../api/catalogService';
@@ -8,9 +9,22 @@ import { useAppHtml } from '../hooks/useCatalog';
 import { GENERATOR_ALLOW, GENERATOR_SANDBOX, openGeneratorTab } from '../lib/launch';
 import { fetchAppHtmlForTab } from '../lib/tabLoader';
 
-/** Full-screen live workspace: the generator runs sandboxed under a thin suite bar. */
-export function Workspace({ app, onClose }: { app: SuiteApp; onClose: () => void }) {
-  const html = useAppHtml(app, true);
+/**
+ * Full-screen live workspace: the generator runs sandboxed under a thin suite bar. A Pro
+ * generator opened by a Free account (e.g. from a shared ?run= link) shows the plan message
+ * without fetching anything.
+ */
+export function Workspace({
+  app,
+  allowed,
+  onClose,
+}: {
+  app: SuiteApp;
+  allowed: boolean;
+  onClose: () => void;
+}) {
+  const t = useT();
+  const html = useAppHtml(app, allowed);
   const frameWrap = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
@@ -34,19 +48,24 @@ export function Workspace({ app, onClose }: { app: SuiteApp; onClose: () => void
     );
   };
 
-  const locked = html.error instanceof LockedGeneratorError;
+  const locked = !allowed || html.error instanceof LockedGeneratorError;
 
   return createPortal(
     <div
       className="fixed inset-0 z-[60] flex flex-col bg-ink-950"
       role="dialog"
       aria-modal="true"
-      aria-label={`${app.name} workspace`}
+      aria-label={t.workspace.label(app.name)}
     >
       <header className="flex items-center gap-2 border-b border-ink-700 bg-ink-900 px-2 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] sm:px-3">
-        <button type="button" onClick={onClose} className="btn-ghost px-2.5">
-          <ArrowLeft className="h-4 w-4" />
-          <span className="hidden sm:inline">Back to suite</span>
+        <button
+          type="button"
+          onClick={onClose}
+          className="btn-ghost px-2.5"
+          aria-label={t.workspace.back}
+        >
+          <ArrowLeft className="flip-rtl h-4 w-4" />
+          <span className="hidden sm:inline">{t.workspace.back}</span>
         </button>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-film-50">{app.name}</p>
@@ -59,11 +78,17 @@ export function Workspace({ app, onClose }: { app: SuiteApp; onClose: () => void
           disabled={!html.data}
         >
           <Maximize2 className="h-4 w-4" />
-          Full screen
+          {t.workspace.fullScreen}
         </button>
-        <button type="button" onClick={openTab} className="btn-quiet px-2.5" disabled={!html.data}>
-          <ExternalLink className="h-4 w-4" />
-          <span className="hidden sm:inline">New tab</span>
+        <button
+          type="button"
+          onClick={openTab}
+          className="btn-quiet px-2.5"
+          disabled={!html.data}
+          aria-label={t.workspace.newTab}
+        >
+          <ExternalLink className="flip-rtl h-4 w-4" />
+          <span className="hidden sm:inline">{t.workspace.newTab}</span>
         </button>
       </header>
 
@@ -71,20 +96,18 @@ export function Workspace({ app, onClose }: { app: SuiteApp; onClose: () => void
         {html.isLoading && (
           <div className="absolute inset-0 flex items-center justify-center gap-3 bg-ink-950 text-sm text-film-400">
             <Loader2 className="h-5 w-5 animate-spin text-localizer" />
-            Loading generator
+            {t.workspace.loading}
           </div>
         )}
-        {html.isError && (
+        {(html.isError || locked) && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-ink-950 px-6 text-center">
             {locked && <Lock className="h-6 w-6 text-caliper" />}
             <p className="max-w-sm text-film-100">
-              {locked
-                ? 'This generator is part of the Pro plan. Ask your suite administrator to upgrade your account.'
-                : 'The generator didn’t load. Check your connection and try again.'}
+              {locked ? t.workspace.locked : t.workspace.failed}
             </p>
             {!locked && (
               <button type="button" className="btn-quiet" onClick={() => void html.refetch()}>
-                Try again
+                {t.common.tryAgain}
               </button>
             )}
           </div>

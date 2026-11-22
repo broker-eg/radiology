@@ -1,6 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Dialog } from '@/components/Dialog';
+import { t as messages, useT } from '@/lib/i18n';
 import { errorMessage, toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import type { AppDraft, AppKind, AppStatus, AppTier, Category, SuiteApp } from '@/types/domain';
@@ -34,6 +35,7 @@ function initialDraft(app: SuiteApp | null, categories: Category[]): AppDraft {
 }
 
 export function AppForm({ existing, categories, modalities, onClose, onSaved }: AppFormProps) {
+  const t = useT();
   const [draft, setDraft] = useState<AppDraft>(() => initialDraft(existing, categories));
   const [htmlFileLabel, setHtmlFileLabel] = useState<string | null>(null);
   const save = useSaveApp();
@@ -48,7 +50,7 @@ export function AppForm({ existing, categories, modalities, onClose, onSaved }: 
   const onHtmlFile = async (file: File | undefined) => {
     if (!file) return;
     const text = await file.text();
-    setHtmlFileLabel(`${file.name} — ${Math.round(text.length / 1024)} KB`);
+    setHtmlFileLabel(messages().form.fileInfo(file.name, Math.round(text.length / 1024)));
     const title = /<title[^>]*>([^<]+)<\/title>/i.exec(text)?.[1]?.trim();
     setDraft((d) => ({
       ...d,
@@ -65,7 +67,8 @@ export function AppForm({ existing, categories, modalities, onClose, onSaved }: 
       { draft, existing },
       {
         onSuccess: (id) => {
-          toast.info(existing ? `Saved ${draft.name.trim()}` : `Added ${draft.name.trim()}`);
+          const name = draft.name.trim();
+          toast.info(existing ? messages().toast.saved(name) : messages().toast.added(name));
           onSaved(id);
         },
       },
@@ -92,44 +95,42 @@ export function AppForm({ existing, categories, modalities, onClose, onSaved }: 
     <Dialog
       open
       onClose={onClose}
-      title={existing ? `Edit ${existing.name}` : 'Add a generator'}
-      context="Changes are visible to every user"
+      title={existing ? t.form.editTitle(existing.name) : t.form.addTitle}
+      context={t.form.context}
       size="lg"
     >
       <form onSubmit={onSubmit} className="space-y-5">
         <div className="flex rounded-md border border-ink-600 p-1">
-          {kindOption('integrated', 'Runs in the suite (HTML)')}
-          {kindOption('external', 'External link')}
+          {kindOption('integrated', t.form.kindIntegrated)}
+          {kindOption('external', t.form.kindExternal)}
         </div>
 
         {draft.kind === 'integrated' ? (
           <div className="space-y-3 rounded-md border border-ink-700 p-3">
             <div>
               <label htmlFor="htmlFile" className="label">
-                Generator HTML file
+                {t.form.htmlFile}
               </label>
               <input
                 id="htmlFile"
                 type="file"
                 accept=".html,.htm,text/html"
                 onChange={(e) => void onHtmlFile(e.target.files?.[0])}
-                className="block w-full text-sm text-film-400 file:mr-3 file:rounded file:border-0 file:bg-ink-700 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-film-50"
+                className="block w-full text-sm text-film-400 file:me-3 file:rounded file:border-0 file:bg-ink-700 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-film-50"
               />
               <p className="mt-1 text-[13px] text-film-500">
-                {htmlFileLabel ??
-                  (existing?.htmlPath
-                    ? 'Leave empty to keep the current file.'
-                    : 'A single self-contained .html file.')}
+                {htmlFileLabel ?? (existing?.htmlPath ? t.form.keepFile : t.form.singleFile)}
               </p>
             </div>
             <div>
               <label htmlFor="htmlPaste" className="label">
-                Or paste the HTML source
+                {t.form.pasteHtml}
               </label>
               <textarea
                 id="htmlPaste"
                 rows={3}
-                className="field font-[ui-monospace,monospace] text-xs"
+                dir="ltr"
+                className="field font-[ui-monospace,monospace] text-xs sm:text-xs"
                 placeholder="<!doctype html>…"
                 value={htmlFileLabel ? '' : (draft.html ?? '')}
                 disabled={!!htmlFileLabel}
@@ -140,12 +141,13 @@ export function AppForm({ existing, categories, modalities, onClose, onSaved }: 
         ) : (
           <div>
             <label htmlFor="externalUrl" className="label">
-              Link
+              {t.form.link}
             </label>
             <input
               id="externalUrl"
               type="url"
               required
+              dir="ltr"
               className="field"
               placeholder="https://quick.aws.com/…"
               value={draft.externalUrl}
@@ -156,7 +158,7 @@ export function AppForm({ existing, categories, modalities, onClose, onSaved }: 
 
         <div>
           <label htmlFor="appName" className="label">
-            Name
+            {t.form.name}
           </label>
           <input
             id="appName"
@@ -164,14 +166,14 @@ export function AppForm({ existing, categories, modalities, onClose, onSaved }: 
             className="field"
             value={draft.name}
             onChange={(e) => set({ name: e.target.value })}
-            placeholder="Liver MRI — LI-RADS report generator"
+            placeholder={t.form.namePlaceholder}
           />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="appRegion" className="label">
-              Body region
+              {t.form.region}
             </label>
             <select
               id="appRegion"
@@ -188,7 +190,7 @@ export function AppForm({ existing, categories, modalities, onClose, onSaved }: 
           </div>
           <div>
             <label htmlFor="appModality" className="label">
-              Modality
+              {t.form.modality}
             </label>
             <input
               id="appModality"
@@ -206,7 +208,7 @@ export function AppForm({ existing, categories, modalities, onClose, onSaved }: 
           </div>
           <div>
             <label htmlFor="appTier" className="label">
-              Plan
+              {t.form.plan}
             </label>
             <select
               id="appTier"
@@ -214,13 +216,13 @@ export function AppForm({ existing, categories, modalities, onClose, onSaved }: 
               value={draft.tier}
               onChange={(e) => set({ tier: e.target.value as AppTier })}
             >
-              <option value="free">Free — every account can open it</option>
-              <option value="pro">Pro — Pro accounts only</option>
+              <option value="free">{t.form.planFreeOption}</option>
+              <option value="pro">{t.form.planProOption}</option>
             </select>
           </div>
           <div>
             <label htmlFor="appStatus" className="label">
-              Status
+              {t.form.status}
             </label>
             <select
               id="appStatus"
@@ -228,40 +230,40 @@ export function AppForm({ existing, categories, modalities, onClose, onSaved }: 
               value={draft.status}
               onChange={(e) => set({ status: e.target.value as AppStatus })}
             >
-              <option value="Integrated">Integrated</option>
-              <option value="Published">Published</option>
-              <option value="Draft">Draft</option>
+              <option value="Integrated">{t.form.statusIntegrated}</option>
+              <option value="Published">{t.form.statusPublished}</option>
+              <option value="Draft">{t.form.statusDraft}</option>
             </select>
           </div>
           <div>
             <label htmlFor="appBadge" className="label">
-              Scoring system
+              {t.form.scoring}
             </label>
             <input
               id="appBadge"
               className="field"
               value={draft.badge}
               onChange={(e) => set({ badge: e.target.value })}
-              placeholder="LI-RADS v2018, RECIST 1.1"
+              placeholder={t.form.scoringPlaceholder}
             />
           </div>
           <div>
             <label htmlFor="appMirror" className="label">
-              Mirror of (optional)
+              {t.form.mirrorOf}
             </label>
             <input
               id="appMirror"
               className="field"
               value={draft.duplicateOf}
               onChange={(e) => set({ duplicateOf: e.target.value })}
-              placeholder="Cloud mirror of SpineMRI Pro"
+              placeholder={t.form.mirrorPlaceholder}
             />
           </div>
         </div>
 
         <div>
           <label htmlFor="appDescription" className="label">
-            Description
+            {t.form.description}
           </label>
           <textarea
             id="appDescription"
@@ -270,7 +272,7 @@ export function AppForm({ existing, categories, modalities, onClose, onSaved }: 
             className="field"
             value={draft.description}
             onChange={(e) => set({ description: e.target.value })}
-            placeholder="What the generator covers and what it outputs."
+            placeholder={t.form.descriptionPlaceholder}
           />
         </div>
 
@@ -284,16 +286,16 @@ export function AppForm({ existing, categories, modalities, onClose, onSaved }: 
           )}
           <div className="flex-1">
             <label htmlFor="appCover" className="label">
-              Cover image
+              {t.form.cover}
             </label>
             <input
               id="appCover"
               type="file"
               accept="image/jpeg,image/png,image/webp,image/gif"
               onChange={(e) => set({ coverFile: e.target.files?.[0] ?? null })}
-              className="block w-full text-sm text-film-400 file:mr-3 file:rounded file:border-0 file:bg-ink-700 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-film-50"
+              className="block w-full text-sm text-film-400 file:me-3 file:rounded file:border-0 file:bg-ink-700 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-film-50"
             />
-            <p className="mt-1 text-[13px] text-film-500">16:10 works best. Up to 5 MB.</p>
+            <p className="mt-1 text-[13px] text-film-500">{t.form.coverHint}</p>
           </div>
         </div>
 
@@ -305,11 +307,11 @@ export function AppForm({ existing, categories, modalities, onClose, onSaved }: 
 
         <div className="flex justify-end gap-2 border-t border-ink-700 pt-4">
           <button type="button" className="btn-ghost" onClick={onClose}>
-            Cancel
+            {t.common.cancel}
           </button>
           <button type="submit" className="btn-primary" disabled={save.isPending}>
             {save.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-            {existing ? 'Save changes' : 'Add generator'}
+            {existing ? t.form.saveChanges : t.form.addGenerator}
           </button>
         </div>
       </form>

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { t } from '@/lib/i18n';
 import { toast } from '@/lib/toast';
 import type { AdminUser, Plan, Role } from '@/types/domain';
 import { listUsers, setUserPlan, setUserRole } from '../api/adminService';
@@ -19,7 +20,7 @@ export function useSetPlan() {
   return useMutation({
     mutationFn: ({ user, plan }: { user: AdminUser; plan: Plan }) => setUserPlan(user.id, plan),
     onSuccess: (_d, { user, plan }) => {
-      toast.info(`${user.fullName ?? user.email} is now on ${plan === 'pro' ? 'Pro' : 'Free'}`);
+      toast.info(t().toast.planChanged(user.fullName ?? user.email, plan === 'pro'));
       void qc.invalidateQueries({ queryKey: usersKey });
     },
   });
@@ -30,9 +31,7 @@ export function useSetRole() {
   return useMutation({
     mutationFn: ({ user, role }: { user: AdminUser; role: Role }) => setUserRole(user.id, role),
     onSuccess: (_d, { user, role }) => {
-      toast.info(
-        `${user.fullName ?? user.email} is ${role === 'admin' ? 'now an admin' : 'no longer an admin'}`,
-      );
+      toast.info(t().toast.roleChanged(user.fullName ?? user.email, role === 'admin'));
       void qc.invalidateQueries({ queryKey: usersKey });
     },
   });

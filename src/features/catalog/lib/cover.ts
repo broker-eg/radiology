@@ -1,4 +1,4 @@
-import fallbackCover from '@/assets/branding/fallback-cover.jpg';
+import fallbackCover from '@/assets/branding/fallback-cover.webp';
 import type { SuiteApp } from '@/types/domain';
 
 export function coverOf(app: SuiteApp): string {

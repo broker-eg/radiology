@@ -1,16 +1,18 @@
 import { ExternalLink, Lock, Play, Star } from 'lucide-react';
+import { useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { SuiteApp } from '@/types/domain';
 
 /** Bottom-right corner annotation: which plan the generator belongs to. */
 export function TierAnnotation({ app, locked }: { app: SuiteApp; locked: boolean }) {
+  const t = useT();
   return app.tier === 'pro' ? (
     <p className="annot inline-flex items-center gap-1 font-semibold text-caliper">
       {locked && <Lock className="h-3 w-3" aria-hidden />}
-      Pro
+      {t.common.pro}
     </p>
   ) : (
-    <p className="annot">Free</p>
+    <p className="annot">{t.common.free}</p>
   );
 }
 
@@ -18,19 +20,23 @@ export function FavoriteButton({
   active,
   onToggle,
   className,
+  tour = false,
 }: {
   active: boolean;
   onToggle: () => void;
   className?: string;
+  tour?: boolean;
 }) {
+  const t = useT();
   return (
     <button
       type="button"
       onClick={onToggle}
       aria-pressed={active}
-      aria-label={active ? 'Remove from favorites' : 'Add to favorites'}
+      aria-label={active ? t.app.removeFavorite : t.app.addFavorite}
+      data-tour={tour ? 'favorite' : undefined}
       className={cn(
-        'rounded-full p-1.5 transition-colors hover:bg-ink-950/60',
+        'rounded-full p-1.5 transition-colors hover:bg-ink-950/60 touch:p-2.5',
         active ? 'text-caliper' : 'text-film-100/80 hover:text-film-50',
         className,
       )}
@@ -46,14 +52,18 @@ export function LaunchButton({
   locked,
   onLaunch,
   onLocked,
+  onIntent,
   className,
 }: {
   app: SuiteApp;
   locked: boolean;
   onLaunch: () => void;
   onLocked: () => void;
+  /** Hover/focus/touch: start fetching the generator before the click lands. */
+  onIntent?: () => void;
   className?: string;
 }) {
+  const t = useT();
   if (locked) {
     return (
       <button
@@ -62,7 +72,7 @@ export function LaunchButton({
         className={cn('btn border border-caliper/40 text-caliper hover:bg-caliper/10', className)}
       >
         <Lock className="h-3.5 w-3.5" aria-hidden />
-        Pro only
+        {t.app.proOnly}
       </button>
     );
   }
@@ -74,15 +84,22 @@ export function LaunchButton({
         rel="noopener noreferrer"
         className={cn('btn-quiet', className)}
       >
-        Open in AWS Quick
-        <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+        {t.app.openAws}
+        <ExternalLink className="flip-rtl h-3.5 w-3.5" aria-hidden />
       </a>
     );
   }
   return (
-    <button type="button" onClick={onLaunch} className={cn('btn-primary', className)}>
+    <button
+      type="button"
+      onClick={onLaunch}
+      onPointerEnter={onIntent}
+      onTouchStart={onIntent}
+      onFocus={onIntent}
+      className={cn('btn-primary', className)}
+    >
       <Play className="h-3.5 w-3.5 fill-current" aria-hidden />
-      Launch
+      {t.app.launch}
     </button>
   );
 }

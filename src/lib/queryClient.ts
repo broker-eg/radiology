@@ -1,4 +1,5 @@
 import { MutationCache, QueryClient } from '@tanstack/react-query';
+import { persistQueries, restoreQueries } from '@/lib/persistQueries';
 import { toast } from '@/lib/toast';
 
 export const queryClient = new QueryClient({
@@ -19,3 +20,7 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+// Catalog/profile from the last visit render instantly, then refresh in the background.
+restoreQueries(queryClient);
+persistQueries(queryClient);

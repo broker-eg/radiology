@@ -1,11 +1,65 @@
+@import './fonts.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Theme tokens (RGB channels, so Tailwind's /alpha modifiers work).
+ * Reading room — dark, the default: a monitor in a dimmed reading room.
+ * Lightbox — light: film clipped to a backlit viewbox, cool blue-white light behind it.
+ * `.scheme-dark` declares the reading-room values on a subtree (declared beats inherited):
+ * image viewports stay dark monitors in both themes, so their annotations read light-on-dark.
+ */
 @layer base {
-  html {
+  :root,
+  .scheme-dark {
+    --ink-950: 6 11 21;
+    --ink-900: 10 18 32;
+    --ink-850: 14 25 43;
+    --ink-800: 19 32 54;
+    --ink-700: 28 43 68;
+    --ink-600: 42 59 87;
+    --film-50: 238 242 247;
+    --film-100: 220 227 236;
+    --film-300: 174 185 200;
+    --film-400: 141 154 174;
+    --film-500: 107 122 144;
+    --localizer: 79 209 232;
+    --localizer-300: 143 228 242;
+    --caliper: 227 185 95;
+    --caliper-300: 240 211 148;
+    --alert: 240 122 112;
+    --scrim: 4 8 16;
+    --scrim-alpha: 0.74;
     color-scheme: dark;
+  }
+
+  :root[data-theme='light'] {
+    --ink-950: 255 255 255;
+    --ink-900: 233 238 244;
+    --ink-850: 245 248 251;
+    --ink-800: 221 228 236;
+    --ink-700: 205 214 225;
+    --ink-600: 170 183 199;
+    --film-50: 10 20 36;
+    --film-100: 29 43 63;
+    --film-300: 56 70 92;
+    --film-400: 76 90 112;
+    --film-500: 95 109 130;
+    --localizer: 8 113 138;
+    --localizer-300: 5 88 108;
+    --caliper: 143 96 12;
+    --caliper-300: 118 78 8;
+    --alert: 185 51 40;
+    --scrim: 15 27 45;
+    --scrim-alpha: 0.5;
+    color-scheme: light;
+  }
+
+  html {
     -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
@@ -13,8 +67,14 @@
     font-variation-settings: 'wdth' 100;
   }
 
+  /* Arabic script needs a touch more size and leading than Latin at the same nominal size. */
+  :root[lang='ar'] body {
+    font-size: 16px;
+    line-height: 1.75;
+  }
+
   :focus-visible {
-    outline: 2px solid theme('colors.localizer.DEFAULT');
+    outline: 2px solid rgb(var(--localizer));
     outline-offset: 2px;
   }
 
@@ -44,8 +104,13 @@
       0 1px 3px rgb(0 0 0 / 0.8);
   }
 
+  .scrim {
+    background-color: rgb(var(--scrim) / var(--scrim-alpha));
+  }
+
+  /* 16px on phones: iOS zooms into any smaller input on focus. */
   .field {
-    @apply w-full rounded-md border border-ink-600 bg-ink-950 px-3 py-2 text-sm transition-colors focus:border-localizer focus:outline-none;
+    @apply w-full rounded-md border border-ink-600 bg-ink-950 px-3 py-2 text-base transition-colors focus:border-localizer focus:outline-none touch:py-2.5 sm:text-sm;
   }
 
   .label {
@@ -53,7 +118,7 @@
   }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-3.5 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-3.5 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 touch:min-h-10;
   }
 
   .btn-primary {
@@ -73,11 +138,49 @@
   }
 
   .chip {
-    @apply inline-flex items-center rounded-full border border-ink-600 px-2.5 py-1 text-[13px] text-film-300 transition-colors hover:border-localizer/60 hover:text-film-50;
+    @apply inline-flex items-center rounded-full border border-ink-600 px-2.5 py-1 text-[13px] text-film-300 transition-colors hover:border-localizer/60 hover:text-film-50 touch:min-h-9 touch:px-3;
   }
 
   .chip-active {
     @apply border-localizer bg-localizer/10 text-localizer-300;
+  }
+
+  /* Segmented control (view, plan, language, theme). */
+  .segmented {
+    @apply inline-flex rounded-md border border-ink-600 p-0.5;
+  }
+
+  .segment {
+    @apply inline-flex items-center justify-center gap-1.5 rounded px-2.5 py-1 text-[13px] text-film-400 transition-colors hover:text-film-100 touch:min-h-9;
+  }
+
+  .segment[aria-pressed='true'] {
+    @apply bg-ink-700 text-film-50;
+  }
+
+  /* Icons that point along the reading direction flip in Arabic. */
+  .flip-rtl:where([dir='rtl'] *) {
+    transform: scaleX(-1);
+  }
+
+  /*
+   * Catalog text from the database (English today): each line takes the direction of its own
+   * words, so in the Arabic interface "ROTTERDAM • MARSHALL" clips at its end ("…") instead of
+   * losing its first letters — while staying aligned with the interface's reading edge.
+   */
+  .data-text {
+    unicode-bidi: plaintext;
+    text-align: left;
+  }
+
+  :root[dir='rtl'] .data-text {
+    text-align: right;
+  }
+
+  /* Long lists: the browser skips layout and paint for regions far off screen. */
+  .defer-render {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 900px;
   }
 }
 
@@ -88,5 +191,6 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

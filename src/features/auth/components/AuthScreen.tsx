@@ -1,10 +1,13 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
-import heroUrl from '@/assets/branding/hero.jpg';
-import portraitUrl from '@/assets/branding/portrait.jpg';
+import heroUrl from '@/assets/branding/hero.webp';
+import portraitUrl from '@/assets/branding/portrait.webp';
+import { InstallButton } from '@/components/InstallButton';
+import { QuickPreferences } from '@/components/Preferences';
 import { Signature } from '@/components/Signature';
 import { Viewport } from '@/components/Viewport';
+import { t as messages, useT } from '@/lib/i18n';
 import { errorMessage } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { signIn, signUp } from '../api/authService';
@@ -13,22 +16,19 @@ type Mode = 'signin' | 'signup';
 
 function friendlyAuthError(error: unknown): string {
   const msg = errorMessage(error);
-  if (/invalid login credentials/i.test(msg))
-    return 'That email and password don’t match an account.';
-  if (/email not confirmed/i.test(msg))
-    return 'Confirm your email first — the link is in your inbox.';
-  if (/already registered/i.test(msg))
-    return 'An account with this email already exists. Sign in instead.';
-  if (/password should be at least/i.test(msg)) return 'Use a password of at least 6 characters.';
+  const t = messages().auth;
+  if (/invalid login credentials/i.test(msg)) return t.errInvalidCredentials;
+  if (/email not confirmed/i.test(msg)) return t.errNotConfirmed;
+  if (/already registered/i.test(msg)) return t.errRegistered;
+  if (/password should be at least/i.test(msg)) return t.errPasswordShort;
   // Supabase-side email checks (only when the project sends confirmation emails).
-  if (/rate limit/i.test(msg))
-    return 'Too many sign-ups in a short time. Try again in a few minutes.';
-  if (/email address .* is invalid|example and test domains/i.test(msg))
-    return 'That email address isn’t accepted. Use a different one.';
+  if (/rate limit/i.test(msg)) return t.errRateLimit;
+  if (/email address .* is invalid|example and test domains/i.test(msg)) return t.errEmailInvalid;
   return msg;
 }
 
 export function AuthScreen() {
+  const t = useT();
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -44,7 +44,7 @@ export function AuthScreen() {
       }
       const active = await signUp(email.trim(), password, fullName.trim());
       if (!active) {
-        setNotice(`We sent a confirmation link to ${email.trim()}. Open it, then sign in here.`);
+        setNotice(messages().auth.confirmSent(email.trim()));
         setMode('signin');
       }
     },
@@ -63,24 +63,24 @@ export function AuthScreen() {
   };
 
   return (
-    <main className="grid min-h-screen bg-ink-900 pt-[env(safe-area-inset-top)] lg:grid-cols-[1.15fr_1fr] lg:pt-0">
+    <main className="relative grid min-h-screen bg-ink-900 lg:grid-cols-[1.15fr_1fr]">
       {/* The reading-room viewport: the suite's identity, annotated like a study. */}
       <Viewport
         src={heroUrl}
         alt=""
         loading="eager"
-        className="min-h-[260px] lg:min-h-screen"
+        className="min-h-[calc(250px+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] lg:min-h-screen"
         imgClassName="animate-windowing"
         topLeft={
-          <div className="annot space-y-0.5">
-            <p>Structured reporting</p>
-            <p className="text-film-300">CT, MRI, US, X-ray, fluoroscopy</p>
+          <div className="annot mt-[env(safe-area-inset-top)] space-y-0.5">
+            <p>{t.auth.heroScope}</p>
+            <p className="text-film-300">{t.auth.heroModalities}</p>
           </div>
         }
         topRight={
-          <div className="annot space-y-0.5 text-right">
-            <p>93 report generators</p>
-            <p className="text-film-300">12 body regions</p>
+          <div className="annot mt-[env(safe-area-inset-top)] space-y-0.5 text-end max-lg:hidden">
+            <p>{t.auth.heroGenerators(93)}</p>
+            <p className="text-film-300">{t.auth.heroRegions(12)}</p>
           </div>
         }
         bottomLeft={
@@ -92,7 +92,7 @@ export function AuthScreen() {
             />
             <div>
               <h1 className="type-condensed text-3xl font-semibold leading-none text-film-50 sm:text-5xl">
-                Radiology Reporting Suite
+                {t.brand.name}
               </h1>
               <Signature className="mt-1.5 text-base sm:text-lg" />
             </div>
@@ -100,7 +100,11 @@ export function AuthScreen() {
         }
       />
 
-      <section className="flex items-center justify-center px-5 py-10 pb-[max(2.5rem,env(safe-area-inset-bottom))] sm:px-10">
+      {/* Language + theme: over the image on phones, top corner of the form on desktop. */}
+      <QuickPreferences className="scheme-dark absolute end-2 top-[calc(env(safe-area-inset-top)+0.25rem)] z-10 lg:hidden" />
+
+      <section className="relative flex items-center justify-center px-5 py-8 pb-[max(2.5rem,env(safe-area-inset-bottom))] sm:px-10 lg:py-10">
+        <QuickPreferences className="absolute end-4 top-4 hidden lg:flex" />
         <div className="w-full max-w-sm">
           <div className="mb-6 flex rounded-md border border-ink-700 p-1" role="tablist">
             {(['signin', 'signup'] as const).map((m) => (
@@ -115,18 +119,16 @@ export function AuthScreen() {
                   mode === m ? 'bg-ink-700 text-film-50' : 'text-film-400 hover:text-film-100',
                 )}
               >
-                {m === 'signin' ? 'Sign in' : 'Create account'}
+                {m === 'signin' ? t.auth.signIn : t.auth.createAccount}
               </button>
             ))}
           </div>
 
           <h2 className="text-2xl font-semibold text-film-50">
-            {mode === 'signin' ? 'Welcome back' : 'Start on the Free plan'}
+            {mode === 'signin' ? t.auth.welcomeBack : t.auth.startFree}
           </h2>
           <p className="mt-1.5 text-sm text-film-400">
-            {mode === 'signin'
-              ? 'Sign in to open your report generators.'
-              : 'Free includes the normal-study and plain-film generators. Pro unlocks all 93.'}
+            {mode === 'signin' ? t.auth.signInLead : t.auth.signUpLead}
           </p>
 
           {notice && (
@@ -139,7 +141,7 @@ export function AuthScreen() {
             {mode === 'signup' && (
               <div>
                 <label htmlFor="fullName" className="label">
-                  Full name
+                  {t.auth.fullName}
                 </label>
                 <input
                   id="fullName"
@@ -147,13 +149,13 @@ export function AuthScreen() {
                   autoComplete="name"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Dr. Amira Hassan"
+                  placeholder={t.auth.namePlaceholder}
                 />
               </div>
             )}
             <div>
               <label htmlFor="email" className="label">
-                Email
+                {t.auth.email}
               </label>
               <input
                 id="email"
@@ -162,19 +164,21 @@ export function AuthScreen() {
                 className="field"
                 autoComplete="email"
                 inputMode="email"
+                dir="ltr"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div>
               <label htmlFor="password" className="label">
-                Password
+                {t.auth.password}
               </label>
               <input
                 id="password"
                 type="password"
                 required
                 minLength={6}
+                dir="ltr"
                 className="field"
                 autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
                 value={password}
@@ -188,11 +192,17 @@ export function AuthScreen() {
               </p>
             )}
 
-            <button type="submit" className="btn-primary w-full py-2.5" disabled={submit.isPending}>
+            <button
+              type="submit"
+              className="btn-primary w-full py-2.5 touch:min-h-12"
+              disabled={submit.isPending}
+            >
               {submit.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              {mode === 'signin' ? 'Sign in' : 'Create account'}
+              {mode === 'signin' ? t.auth.signIn : t.auth.createAccount}
             </button>
           </form>
+
+          <InstallButton className="-ms-2.5 mt-6 text-film-400" />
         </div>
       </section>
     </main>
