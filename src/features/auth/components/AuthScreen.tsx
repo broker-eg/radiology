@@ -20,6 +20,11 @@ function friendlyAuthError(error: unknown): string {
   if (/already registered/i.test(msg))
     return 'An account with this email already exists. Sign in instead.';
   if (/password should be at least/i.test(msg)) return 'Use a password of at least 6 characters.';
+  // Supabase-side email checks (only when the project sends confirmation emails).
+  if (/rate limit/i.test(msg))
+    return 'Too many sign-ups in a short time. Try again in a few minutes.';
+  if (/email address .* is invalid|example and test domains/i.test(msg))
+    return 'That email address isn’t accepted. Use a different one.';
   return msg;
 }
 
