@@ -4,7 +4,7 @@ Structured radiology report generators (CT, MRI, ultrasound, X-ray, fluoroscopy)
 Dr. Yasser Shalaby, MD — rebuilt from a single 75 MB offline HTML file into a React app on
 GitHub Pages with a Supabase backend.
 
-- **93 generators** in 12 body regions: 69 run inside the suite (sandboxed), 24 open AWS Quick.
+- **93 generators** in 12 body regions: 87 run inside the suite (sandboxed), 6 open AWS Quick.
 - **Accounts & plans**: anyone can sign up on **Free**; **Pro** unlocks every generator.
   Admins move users between plans in the **Users** portal (`#/admin`).
 - **Tour with arrows**: on a new account's first sign-in (remembered per user in
@@ -109,6 +109,13 @@ node scripts/build-seed-sql.mjs legacy-extract/catalog.json > supabase/seed.sql
 SUPABASE_URL=… SUPABASE_TOKEN=<admin access token> node scripts/seed-remote.mjs legacy-extract
 scripts/make-icons.sh            # re-render the app icons from public/*.svg
 ```
+
+18 of the AWS Quick generators were later recovered as standalone HTML
+(`aws-quick-radiology-apps.zip`, not in git) and now run inside the suite. On a fresh project,
+after seeding: `node scripts/import-quick-apps.mjs <unzipped-dir>` (uploads them to `app-html`),
+then `node scripts/supabase-api.mjs file supabase/migrations/20261122223719_integrate_aws_quick_generators.sql`
+(switches their rows to integrated; idempotent, refuses while a file is missing). The script lists
+the three archive files that hold the wrong generator and are deliberately skipped.
 
 The extractor writes the branding images as JPEG; the app ships WebP. Re-encode with
 `nix shell --inputs-from . nixpkgs#libwebp -c cwebp -q 72 hero.jpg -o hero.webp` (portrait:

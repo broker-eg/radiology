@@ -10,33 +10,10 @@
 // `migrate` records each file in supabase_migrations.schema_migrations exactly like
 // `supabase db push`, so the CLI and this script stay interchangeable.
 import { readdirSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
+import { query, ROOT } from './lib/management-api.mjs';
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const PROJECT_REF = process.env.SUPABASE_PROJECT_REF ?? 'jnpkukgwsuvzehwxjxfc';
 const MIGRATIONS = join(ROOT, 'supabase', 'migrations');
-
-function token() {
-  if (process.env.SUPABASE_ACCESS_TOKEN) return process.env.SUPABASE_ACCESS_TOKEN.trim();
-  try {
-    return readFileSync(join(ROOT, '.secrets', 'supabase-access-token'), 'utf8').trim();
-  } catch {
-    console.error('No token: set SUPABASE_ACCESS_TOKEN or write .secrets/supabase-access-token');
-    process.exit(2);
-  }
-}
-
-async function query(sql) {
-  const res = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: sql }),
-  });
-  const text = await res.text();
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${text}`);
-  return text ? JSON.parse(text) : [];
-}
 
 const quote = (s) => `'${s.replace(/'/g, "''")}'`;
 

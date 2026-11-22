@@ -3,7 +3,7 @@
 --
 -- Expected (signed-in Free account, no admin):
 --   apps_visible 93 · categories_visible 12 · profiles_visible 0 · is_admin f · has_pro f
---   html_readable = number of FREE generators hosted in the suite (7 at seed time)
+--   html_readable = number of FREE generators hosted in the suite (8: 7 seeded + the Quick workstation)
 --   pro_html_readable 0
 -- Expected write checks: every row 'blocked: 42501', except 'non-admin update app (rows)' = 0
 -- and 'anon read app-html objects' = 0.

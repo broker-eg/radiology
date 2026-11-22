@@ -23,6 +23,9 @@ Read `README.md` first (what the app is, plans/roles, deploy). This file is the 
   `.secrets/supabase-access-token` (git-ignored; or `$SUPABASE_ACCESS_TOKEN`), records them in
   `supabase_migrations.schema_migrations` like `db push`, and reloads the PostgREST cache.
   `… migrations` lists applied/pending; `… sql "<sql>"` / `… file x.sql` run ad-hoc SQL.
+  Storage uploads (generator HTML, covers) go through `uploadObject` in
+  `scripts/lib/management-api.mjs` (service key fetched with the same token, never printed) —
+  see `scripts/import-quick-apps.mjs`.
   Ship order for a feature: migrate → verify → push `main` (deploys) → check the live page.
 - Verify a change: `pnpm typecheck && pnpm lint` green, plus `scripts/rls_check.sql` after
   any schema/RLS change.
