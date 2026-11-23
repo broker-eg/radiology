@@ -11,6 +11,7 @@ import { coverOf } from '../lib/cover';
 import { openGeneratorTab } from '../lib/launch';
 import { fetchAppHtmlForTab } from '../lib/tabLoader';
 import { LaunchButton, TierAnnotation } from './AppBits';
+import { GeneratorName } from './GeneratorName';
 
 interface AppDialogProps {
   app: SuiteApp;
@@ -93,7 +94,11 @@ export function AppDialog({
     <Dialog
       open
       onClose={onClose}
-      title={<span className="data-text block">{app.name}</span>}
+      title={
+        <span className="data-text block">
+          <GeneratorName name={app.name} />
+        </span>
+      }
       context={app.category}
       size="xl"
       footer={primary ? <div className="sm:hidden">{primary}</div> : undefined}

@@ -1,9 +1,11 @@
+import { Lock } from 'lucide-react';
 import { Viewport } from '@/components/Viewport';
 import { OfflineMark } from '@/features/offline/components/OfflineBits';
 import { useT } from '@/lib/i18n';
 import type { SuiteApp } from '@/types/domain';
 import { coverOf } from '../lib/cover';
 import { FavoriteButton, LaunchButton, TierAnnotation } from './AppBits';
+import { GeneratorName } from './GeneratorName';
 import { Highlight } from './Highlight';
 
 export interface AppActions {
@@ -21,6 +23,8 @@ export interface AppActions {
 /**
  * A generator. Phones: a compact row — thumbnail, name, scoring system, actions — so a region
  * fits on a screen. From `sm` up: the full viewport card with DICOM corner annotations.
+ * A generator outside the viewer's plan has one quiet action, Details (where the plan is
+ * explained); the gold Pro corner annotation already says why it can't launch.
  */
 export function AppTile({
   app,
@@ -54,7 +58,7 @@ export function AppTile({
             src={coverOf(app)}
             alt=""
             className="h-full min-h-[5.5rem] rounded-md border border-ink-700 transition-colors group-hover:border-localizer/50 sm:aspect-[16/10] sm:h-auto"
-            imgClassName="transition-transform duration-500 group-hover:scale-[1.03]"
+            imgClassName="window-in"
             topLeft={
               <div className="annot max-sm:hidden">
                 <p>{app.modality}</p>
@@ -98,7 +102,8 @@ export function AppTile({
               </p>
             )}
             <h3 className="data-text text-[15px] font-semibold leading-snug text-film-50 max-sm:line-clamp-2 sm:text-base">
-              <Highlight text={app.name} tokens={tokens} />
+              {/* Phone rows keep both lines for the exam; Details shows the full name. */}
+              <GeneratorName name={app.name} tokens={tokens} kindClassName="max-sm:hidden" />
             </h3>
           </div>
           <FavoriteButton
@@ -123,21 +128,34 @@ export function AppTile({
       </div>
 
       <div className="col-start-2 mt-2.5 flex gap-2 sm:mt-3">
-        <LaunchButton
-          app={app}
-          locked={locked}
-          onLaunch={() => actions.onLaunch(app)}
-          onLocked={() => actions.onOpenDetails(app)}
-          onIntent={() => actions.onIntent(app)}
-          className="flex-1 max-sm:py-1.5"
-        />
-        <button
-          type="button"
-          onClick={() => actions.onOpenDetails(app)}
-          className="btn-ghost max-sm:py-1.5"
-        >
-          {t.app.details}
-        </button>
+        {locked ? (
+          <button
+            type="button"
+            onClick={() => actions.onOpenDetails(app)}
+            className="btn-quiet flex-1 text-film-300 max-sm:py-1.5"
+          >
+            <Lock className="h-3.5 w-3.5 text-caliper" aria-hidden />
+            {t.app.details}
+          </button>
+        ) : (
+          <>
+            <LaunchButton
+              app={app}
+              locked={false}
+              onLaunch={() => actions.onLaunch(app)}
+              onLocked={() => actions.onOpenDetails(app)}
+              onIntent={() => actions.onIntent(app)}
+              className="flex-1 max-sm:py-1.5"
+            />
+            <button
+              type="button"
+              onClick={() => actions.onOpenDetails(app)}
+              className="btn-ghost max-sm:py-1.5"
+            >
+              {t.app.details}
+            </button>
+          </>
+        )}
       </div>
     </article>
   );

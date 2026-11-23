@@ -97,3 +97,15 @@ Read `README.md` first (what the app is, plans/roles, deploy). This file is the 
   image corners (`components/Viewport`) like DICOM annotations. Archivo (with width axis),
   IBM Plex Sans Arabic for Arabic glyphs only, Newsreader italic for the signature only (its
   font file is subset to the signature's letters — re-subset if that text changes).
+- Viewport vocabulary, each piece carrying meaning: the hero search sits on the cyan
+  *localizer line* (a PACS slice-position line, brightens on focus); `Viewport scale` draws the
+  trailing-edge calibration ruler on large viewports; body regions show *series thumbnails*
+  (`SeriesThumb`: the region's first cover, grey `.film-tone` until hovered/selected) instead of
+  emoji; generator covers rest slightly windowed down and window in on hover/focus
+  (`.window-in`, hover devices only) — no zoom-on-hover.
+- Generator names render through `GeneratorName`: the exam leads, the shared product words
+  ("Structured Report Auto-Generator", "Studio") are quieter (`lib/name.ts`); phone rows drop them.
+- Gold stays scarce: a generator outside the viewer's plan gets one neutral _Details_ button
+  with a small gold lock — the gold `Pro` corner annotation already says why it can't launch.
+- The default hero art mirrors in Arabic (`mirrorInRtl`) so its subject stays opposite the
+  title column; never mirror generator covers (some carry lettering).

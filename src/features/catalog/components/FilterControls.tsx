@@ -2,24 +2,30 @@ import { useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { Category } from '@/types/domain';
 import { MODALITIES, type Filters, type ModalityFilter, type SourceFilter } from '../lib/search';
+import { SeriesThumb } from './SeriesThumb';
 
 type Patch = (patch: Partial<Filters>) => void;
 
+/** The desktop series list: one row per body region, with its series thumbnail and count. */
 export function RegionList({
   categories,
+  covers,
   counts,
   total,
   filters,
   onChange,
 }: {
   categories: Category[];
+  /** Region name → its first generator's cover. */
+  covers: Map<string, string>;
   counts: Map<string, number>;
   total: number;
   filters: Filters;
   onChange: Patch;
 }) {
   const t = useT();
-  const item = (label: string, icon: string | null, count: number, value: string | null) => {
+  const item = (label: string, category: Category | null, count: number) => {
+    const value = category?.name ?? null;
     const active = filters.region === value;
     return (
       <li key={label}>
@@ -28,16 +34,19 @@ export function RegionList({
           onClick={() => onChange({ region: value })}
           aria-current={active ? 'true' : undefined}
           className={cn(
-            'flex w-full items-center gap-2.5 border-s-2 py-1.5 pe-2 ps-3 text-start text-sm transition-colors',
+            'group flex w-full items-center gap-2.5 border-s-2 py-1.5 pe-2 ps-3 text-start text-sm transition-colors',
             active
               ? 'border-localizer bg-localizer/5 text-film-50'
               : 'border-transparent text-film-400 hover:border-ink-600 hover:text-film-100',
           )}
         >
-          {icon && (
-            <span className="w-5 text-center text-base leading-none" aria-hidden>
-              {icon}
-            </span>
+          {category && (
+            <SeriesThumb
+              src={covers.get(category.name)}
+              icon={category.icon}
+              active={active}
+              className="h-6 w-6 text-base"
+            />
           )}
           <span className="flex-1 truncate">{label}</span>
           <span className={cn('tabular-nums', count === 0 ? 'text-film-500/60' : 'text-film-500')}>
@@ -49,8 +58,8 @@ export function RegionList({
   };
   return (
     <ul className="space-y-0.5">
-      {item(t.suite.allRegions, null, total, null)}
-      {categories.map((c) => item(c.name, c.icon, counts.get(c.name) ?? 0, c.name))}
+      {item(t.suite.allRegions, null, total)}
+      {categories.map((c) => item(c.name, c, counts.get(c.name) ?? 0))}
     </ul>
   );
 }

@@ -2,9 +2,11 @@ import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Category, SuiteApp } from '@/types/domain';
 import { AppTile, type AppActions } from './AppTile';
+import { SeriesThumb } from './SeriesThumb';
 
 export function RegionSection({
   category,
+  cover,
   apps,
   tokens,
   collapsed,
@@ -12,6 +14,8 @@ export function RegionSection({
   actions,
 }: {
   category: Category;
+  /** The region's series thumbnail (its first generator's cover). */
+  cover: string | undefined;
   apps: SuiteApp[];
   tokens: string[];
   collapsed: boolean;
@@ -27,11 +31,13 @@ export function RegionSection({
           onClick={onToggle}
           aria-expanded={!collapsed}
           aria-controls={panelId}
-          className="group flex w-full items-start gap-3 text-start"
+          className="group flex w-full items-start gap-3 text-start sm:gap-4"
         >
-          <span className="mt-0.5 text-xl leading-none" aria-hidden>
-            {category.icon}
-          </span>
+          <SeriesThumb
+            src={cover}
+            icon={category.icon}
+            className="mt-1 h-10 w-10 text-xl sm:h-12 sm:w-12"
+          />
           <span className="min-w-0 flex-1">
             <span className="flex items-baseline gap-2.5">
               <span className="type-condensed text-2xl font-semibold leading-tight text-film-50 group-hover:text-localizer-300">

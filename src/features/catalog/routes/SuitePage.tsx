@@ -19,6 +19,7 @@ import { AppTile, type AppActions } from '../components/AppTile';
 import { RefineControls, RegionList } from '../components/FilterControls';
 import { HeroViewport } from '../components/HeroViewport';
 import { RegionSection } from '../components/RegionSection';
+import { SeriesThumb } from '../components/SeriesThumb';
 import { Workspace } from '../components/Workspace';
 import { Worklist } from '../components/Worklist';
 import {
@@ -92,6 +93,12 @@ export function SuitePage() {
   const categories = useMemo(() => categoriesQ.data ?? [], [categoriesQ.data]);
   const favorites = useMemo(() => favoritesQ.data ?? new Set<string>(), [favoritesQ.data]);
   const byId = useMemo(() => new Map(apps.map((a) => [a.id, a])), [apps]);
+  // Each region's series thumbnail: the cover of its first generator in catalog order.
+  const regionCovers = useMemo(() => {
+    const covers = new Map<string, string>();
+    for (const app of apps) if (!covers.has(app.category)) covers.set(app.category, coverOf(app));
+    return covers;
+  }, [apps]);
 
   const canLaunch = useCallback((app: SuiteApp) => hasPro || app.tier === 'free', [hasPro]);
   const prefetch = usePrefetchAppHtml(canLaunch);
@@ -276,6 +283,7 @@ export function SuitePage() {
           <HeroViewport
             ref={searchRef}
             image={heroApp ? coverOf(heroApp) : defaultHero}
+            mirrorInRtl={!heroApp}
             query={filters.query}
             onQuery={(query) => patch({ query })}
             total={apps.length}
@@ -301,6 +309,7 @@ export function SuitePage() {
                 </h2>
                 <RegionList
                   categories={categories}
+                  covers={regionCovers}
                   counts={regionCounts}
                   total={countAllRegions}
                   filters={filters}
@@ -333,11 +342,17 @@ export function SuitePage() {
                     key={c.name}
                     type="button"
                     onClick={() => patch({ region: filters.region === c.name ? null : c.name })}
-                    className={cn('chip shrink-0', filters.region === c.name && 'chip-active')}
+                    className={cn(
+                      'chip group shrink-0 ps-1.5 touch:ps-1.5',
+                      filters.region === c.name && 'chip-active',
+                    )}
                   >
-                    <span className="me-1.5" aria-hidden>
-                      {c.icon}
-                    </span>
+                    <SeriesThumb
+                      src={regionCovers.get(c.name)}
+                      icon={c.icon}
+                      active={filters.region === c.name}
+                      className="me-2 h-6 w-6 rounded-full"
+                    />
                     {c.name}
                     <span className="ms-1.5 tabular-nums text-film-500">
                       {regionCounts.get(c.name) ?? 0}
@@ -482,6 +497,7 @@ export function SuitePage() {
                     <RegionSection
                       key={category.name}
                       category={category}
+                      cover={regionCovers.get(category.name)}
                       apps={regionApps}
                       tokens={tokens}
                       collapsed={!forceOpen && collapsed.has(category.name)}

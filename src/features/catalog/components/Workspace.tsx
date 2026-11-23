@@ -8,6 +8,7 @@ import { LockedGeneratorError, OfflineUnavailableError } from '../api/catalogSer
 import { useAppHtml } from '../hooks/useCatalog';
 import { GENERATOR_ALLOW, GENERATOR_SANDBOX, openGeneratorTab } from '../lib/launch';
 import { fetchAppHtmlForTab } from '../lib/tabLoader';
+import { GeneratorName } from './GeneratorName';
 
 /**
  * Full-screen live workspace: the generator runs sandboxed under a thin suite bar. A Pro
@@ -69,7 +70,9 @@ export function Workspace({
           <span className="hidden sm:inline">{t.workspace.back}</span>
         </button>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-film-50">{app.name}</p>
+          <p className="data-text truncate text-sm font-semibold text-film-50">
+            <GeneratorName name={app.name} />
+          </p>
           <p className="hidden truncate text-[13px] text-film-500 sm:block">{app.category}</p>
         </div>
         <button

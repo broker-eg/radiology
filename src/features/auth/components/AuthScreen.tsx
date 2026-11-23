@@ -71,7 +71,8 @@ export function AuthScreen() {
         src={heroUrl}
         alt=""
         loading="eager"
-        className="min-h-[calc(250px+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] lg:min-h-screen"
+        scale
+        className="min-h-[calc(260px+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] lg:min-h-screen"
         imgClassName="animate-windowing"
         topLeft={
           <div className="annot mt-[env(safe-area-inset-top)] space-y-0.5">
@@ -85,22 +86,22 @@ export function AuthScreen() {
             <p className="text-film-300">{t.auth.heroRegions(12)}</p>
           </div>
         }
-        bottomLeft={
-          <div className="flex items-end gap-3 pb-1">
-            <img
-              src={portraitUrl}
-              alt="Dr. Yasser Shalaby, MD"
-              className="h-14 w-14 rounded-sm object-cover object-top ring-1 ring-caliper/50 sm:h-16 sm:w-16"
-            />
-            <div>
-              <h1 className="type-condensed text-3xl font-semibold leading-none text-film-50 sm:text-5xl">
-                {t.brand.name}
-              </h1>
-              <Signature className="mt-1.5 text-base sm:text-lg" />
-            </div>
+      >
+        {/* The title block sits inset from the corner, clear of the corner annotations. */}
+        <div className="absolute bottom-5 end-5 start-5 flex items-end gap-3 sm:bottom-10 sm:end-10 sm:start-10 sm:gap-4 lg:bottom-14 lg:start-14">
+          <img
+            src={portraitUrl}
+            alt="Dr. Yasser Shalaby, MD"
+            className="h-14 w-14 shrink-0 rounded-sm object-cover object-top ring-1 ring-caliper/50 sm:h-[4.5rem] sm:w-[4.5rem]"
+          />
+          <div className="min-w-0">
+            <h1 className="type-condensed text-3xl font-semibold leading-none text-film-50 [text-shadow:0_2px_12px_rgb(0_0_0/0.6)] sm:text-5xl lg:text-[3.5rem]">
+              {t.brand.name}
+            </h1>
+            <Signature className="mt-1.5 text-base [text-shadow:0_1px_6px_rgb(0_0_0/0.8)] sm:mt-2 sm:text-lg" />
           </div>
-        }
-      />
+        </div>
+      </Viewport>
 
       {/* Language + theme: over the image on phones, top corner of the form on desktop. */}
       <QuickPreferences className="scheme-dark absolute end-2 top-[calc(env(safe-area-inset-top)+0.25rem)] z-10 lg:hidden" />

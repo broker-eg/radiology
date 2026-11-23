@@ -1,9 +1,11 @@
+import { Lock } from 'lucide-react';
 import { OfflineMark } from '@/features/offline/components/OfflineBits';
 import { useT } from '@/lib/i18n';
 import type { SuiteApp } from '@/types/domain';
 import { coverOf } from '../lib/cover';
 import { FavoriteButton, LaunchButton, TierAnnotation } from './AppBits';
 import type { AppActions } from './AppTile';
+import { GeneratorName } from './GeneratorName';
 import { Highlight } from './Highlight';
 
 /** Dense, sortable-at-a-glance list — the radiologist's worklist. */
@@ -49,7 +51,7 @@ export function Worklist({
               <tr
                 key={app.id}
                 data-tour="tile"
-                className="bg-ink-900 transition-colors hover:bg-ink-850"
+                className="group bg-ink-900 transition-colors hover:bg-ink-850"
               >
                 <td className="px-3 py-2.5">
                   <div className="flex items-center gap-3">
@@ -62,7 +64,7 @@ export function Worklist({
                       src={coverOf(app)}
                       alt=""
                       loading="lazy"
-                      className="hidden h-10 w-16 shrink-0 rounded-sm object-cover sm:block"
+                      className="window-in hidden h-10 w-16 shrink-0 rounded-sm object-cover sm:block"
                     />
                     <button
                       type="button"
@@ -70,7 +72,7 @@ export function Worklist({
                       className="min-w-0 text-start"
                     >
                       <span className="data-text block font-medium leading-snug text-film-50 hover:text-localizer-300">
-                        <Highlight text={app.name} tokens={tokens} />
+                        <GeneratorName name={app.name} tokens={tokens} />
                       </span>
                       <span className="block text-[13px] text-film-500 md:hidden">
                         {app.modality}
@@ -105,14 +107,25 @@ export function Worklist({
                   </div>
                 </td>
                 <td className="px-3 py-2.5 text-end">
-                  <LaunchButton
-                    app={app}
-                    locked={locked}
-                    onLaunch={() => actions.onLaunch(app)}
-                    onLocked={() => actions.onOpenDetails(app)}
-                    onIntent={() => actions.onIntent(app)}
-                    className="whitespace-nowrap px-3 py-1.5"
-                  />
+                  {locked ? (
+                    <button
+                      type="button"
+                      onClick={() => actions.onOpenDetails(app)}
+                      className="btn-quiet min-w-[6.5rem] whitespace-nowrap px-3 py-1.5 text-film-300"
+                    >
+                      <Lock className="h-3.5 w-3.5 text-caliper" aria-hidden />
+                      {t.app.details}
+                    </button>
+                  ) : (
+                    <LaunchButton
+                      app={app}
+                      locked={false}
+                      onLaunch={() => actions.onLaunch(app)}
+                      onLocked={() => actions.onOpenDetails(app)}
+                      onIntent={() => actions.onIntent(app)}
+                      className="min-w-[6.5rem] whitespace-nowrap px-3 py-1.5"
+                    />
+                  )}
                 </td>
               </tr>
             );

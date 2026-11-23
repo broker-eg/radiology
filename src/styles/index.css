@@ -177,6 +177,33 @@
     text-align: right;
   }
 
+  /* Series thumbnails rest as grey film; hovering their row brings the colour back. */
+  .film-tone {
+    filter: grayscale(1) contrast(1.15) brightness(0.85);
+    transition: filter 0.25s ease-out;
+  }
+
+  .group:hover .film-tone {
+    filter: none;
+  }
+
+  /*
+   * Generator covers rest a little windowed down (as a study opens before W/L is set); hovering
+   * or focusing the generator windows it in. Only where there is a real hover: on touch screens
+   * covers stay at full contrast.
+   */
+  @media (hover: hover) {
+    .window-in {
+      filter: saturate(0.75) brightness(0.86);
+      transition: filter 0.3s ease-out;
+    }
+
+    .group:hover .window-in,
+    .group:focus-within .window-in {
+      filter: none;
+    }
+  }
+
   /* Long lists: the browser skips layout and paint for regions far off screen. */
   .defer-render {
     content-visibility: auto;

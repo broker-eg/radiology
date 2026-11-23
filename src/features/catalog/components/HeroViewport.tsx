@@ -8,6 +8,11 @@ import { QUICK_FINDS } from '../lib/search';
 
 interface HeroViewportProps {
   image: string;
+  /**
+   * Mirror the image in Arabic so its subject stays opposite the title column. Only for the
+   * suite's own artwork: a generator cover may carry lettering.
+   */
+  mirrorInRtl?: boolean;
   query: string;
   onQuery: (q: string) => void;
   total: number;
@@ -20,11 +25,25 @@ interface HeroViewportProps {
 }
 
 /**
- * The hero is a reading-room viewport: the search sits where the image would be read,
- * and the suite's live numbers sit in the corners as DICOM-style annotations.
+ * The hero is a reading-room viewport: the search sits on the localizer line (a PACS viewer's
+ * cyan slice-position line, running edge to edge), a calibration scale marks the trailing edge,
+ * and the suite's live numbers sit in the corners as DICOM-style annotations. Title and search
+ * share the leading column so the image keeps the other half.
  */
 export const HeroViewport = forwardRef<HTMLInputElement, HeroViewportProps>(function HeroViewport(
-  { image, query, onQuery, total, regions, showing, favorites, unlocked, planLabel, isPro },
+  {
+    image,
+    mirrorInRtl = false,
+    query,
+    onQuery,
+    total,
+    regions,
+    showing,
+    favorites,
+    unlocked,
+    planLabel,
+    isPro,
+  },
   inputRef,
 ) {
   const t = useT();
@@ -34,16 +53,20 @@ export const HeroViewport = forwardRef<HTMLInputElement, HeroViewportProps>(func
       src={image}
       alt=""
       loading="eager"
+      scale
       className="rounded-lg border border-ink-700"
-      imgClassName="animate-windowing [filter:brightness(0.5)_contrast(1.05)_grayscale(0.35)]"
+      imgClassName={cn(
+        'animate-windowing [filter:brightness(0.5)_contrast(1.05)_grayscale(0.35)]',
+        mirrorInRtl && 'rtl:-scale-x-100',
+      )}
     >
-      <div className="flex flex-col justify-between gap-5 p-4 sm:min-h-[440px] sm:gap-6 sm:p-6">
+      <div className="flex flex-col justify-between gap-4 p-4 sm:min-h-[420px] sm:gap-6 sm:p-6 lg:p-8">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="type-condensed text-[1.875rem] font-semibold leading-none text-film-50 [text-shadow:0_2px_12px_rgb(0_0_0/0.6)] sm:text-5xl">
+            <h1 className="type-condensed text-[1.75rem] font-semibold leading-none text-film-50 [text-shadow:0_2px_12px_rgb(0_0_0/0.6)] sm:text-5xl lg:text-[3.5rem]">
               {t.brand.name}
             </h1>
-            <Signature className="mt-2 text-base [text-shadow:0_1px_6px_rgb(0_0_0/0.8)] sm:text-lg" />
+            <Signature className="mt-1.5 text-[15px] [text-shadow:0_1px_6px_rgb(0_0_0/0.8)] sm:mt-2 sm:text-lg" />
           </div>
           <div className="annot hidden text-end sm:block">
             <p>{t.suite.annotGenerators(total)}</p>
@@ -51,11 +74,16 @@ export const HeroViewport = forwardRef<HTMLInputElement, HeroViewportProps>(func
           </div>
         </div>
 
-        <div className="mx-auto w-full max-w-2xl">
+        <div className="w-full sm:max-w-xl">
           <label htmlFor="suite-search" className="sr-only">
             {t.suite.searchLabel}
           </label>
-          <div className="relative" data-tour="search">
+          <div className="group/search relative" data-tour="search">
+            {/* The localizer line: clipped by the viewport, brightens while the search has focus. */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -inset-x-[100vw] top-1/2 h-px bg-localizer/35 transition-colors group-focus-within/search:bg-localizer/80"
+            />
             <Search
               className="pointer-events-none absolute start-3.5 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-localizer"
               aria-hidden
@@ -75,7 +103,7 @@ export const HeroViewport = forwardRef<HTMLInputElement, HeroViewportProps>(func
               }}
               placeholder={t.suite.searchPlaceholder}
               enterKeyHint="search"
-              className="w-full rounded-md border border-ink-600 bg-ink-950/85 py-3.5 pe-10 ps-11 text-base text-film-50 shadow-2xl shadow-black/50 backdrop-blur focus:border-localizer focus:outline-none sm:pe-20 [&::-webkit-search-cancel-button]:hidden"
+              className="relative w-full rounded-md border border-ink-600 bg-ink-950/90 py-3 pe-10 ps-11 text-base text-film-50 shadow-2xl shadow-black/50 backdrop-blur focus:border-localizer focus:outline-none sm:py-3.5 sm:pe-20 [&::-webkit-search-cancel-button]:hidden"
             />
             {query ? (
               <button
@@ -114,7 +142,8 @@ export const HeroViewport = forwardRef<HTMLInputElement, HeroViewportProps>(func
           </div>
         </div>
 
-        <div className="flex items-end justify-between gap-4">
+        {/* Phones: the header already shows the plan and the toolbar the count. */}
+        <div className="flex items-end justify-between gap-4 max-sm:hidden">
           <div className="annot">
             <p className={cn('font-semibold', isPro ? 'text-caliper' : 'text-film-50')}>
               {planLabel}
