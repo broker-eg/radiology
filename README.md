@@ -114,8 +114,10 @@ scripts/make-icons.sh            # re-render the app icons from public/*.svg
 (`aws-quick-radiology-apps.zip`, not in git) and now run inside the suite. On a fresh project,
 after seeding: `node scripts/import-quick-apps.mjs <unzipped-dir>` (uploads them to `app-html`),
 then `node scripts/supabase-api.mjs file supabase/migrations/20261122223719_integrate_aws_quick_generators.sql`
-(switches their rows to integrated; idempotent, refuses while a file is missing). The script lists
-the three archive files that hold the wrong generator and are deliberately skipped.
+(switches their rows to integrated; idempotent, refuses while a file is missing), then
+`… file supabase/migrations/20261123143000_unmirror_recovered_quick_generators.sql` (drops their
+"Cloud Mirror of …" line and moves them out of Duplicates & Cloud Mirrors into their regions).
+The script lists the three archive files that hold the wrong generator and are deliberately skipped.
 
 The extractor writes the branding images as JPEG; the app ships WebP. Re-encode with
 `nix shell --inputs-from . nixpkgs#libwebp -c cwebp -q 72 hero.jpg -o hero.webp` (portrait:
