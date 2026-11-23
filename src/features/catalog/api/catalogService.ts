@@ -1,4 +1,5 @@
 import { readOfflineApp, saveOfflineApp } from '@/features/offline/api/offlineStore';
+import { inlineVendorResources } from '@/features/offline/api/vendorStore';
 import { t } from '@/lib/i18n';
 import { isOnline } from '@/lib/network';
 import { supabase } from '@/lib/supabase';
@@ -129,11 +130,20 @@ async function anyOpenedVersion(cache: Cache | null, path: string): Promise<stri
 const SLOW_NETWORK_MS = 4000;
 
 /**
+ * A generator's HTML, ready to render: the generator itself (see loadAppHtml) with the CDN
+ * files it loads — Tailwind, icons, Word export, fonts — written in from the device, so it
+ * looks and works the same with no connection (vendorStore).
+ */
+export async function fetchAppHtml(app: SuiteApp): Promise<string> {
+  return inlineVendorResources(await loadAppHtml(app));
+}
+
+/**
  * A generator's HTML: this version from the device when it was opened or downloaded before,
  * else Storage. With no connection (or one that doesn't answer), any saved version opens
  * rather than nothing. Opening a downloaded generator online keeps its offline copy current.
  */
-export async function fetchAppHtml(app: SuiteApp): Promise<string> {
+async function loadAppHtml(app: SuiteApp): Promise<string> {
   const path = app.htmlPath as string;
   const version = app.updatedAt;
   const cache = await openGeneratorCache();

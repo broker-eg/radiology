@@ -9,7 +9,15 @@ const LAYERING_MESSAGE =
   'Import the Supabase client only inside src/lib/**, src/app/providers/**, or src/features/*/api/**. Components and hooks must go through the service layer.';
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'src/types/database.ts', 'supabase/functions'] },
+  {
+    ignores: [
+      'dist',
+      'node_modules',
+      'src/types/database.ts',
+      'supabase/functions',
+      'public/vendor',
+    ],
+  },
 
   ...tseslint.configs.recommended,
   ...pluginQuery.configs['flat/recommended'],

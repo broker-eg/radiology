@@ -78,8 +78,15 @@ Read `README.md` first (what the app is, plans/roles, deploy). This file is the 
   `fetchAppHtml` falls back to them (any version) offline or after 4 s of a silent network.
   Generator-HTML queries use `networkMode: 'always'` — they must run with no connection.
   `public/sw.js` precaches the build: `vite.config.ts` fills `BUILD`/`PRECACHE` at build time.
-  Any page-owned cache must be listed in the worker's `KEEP`, or a deploy wipes it. Offline with
-  an expired token, `AuthProvider` runs from the stored session (`readStoredSession`,
+  Any page-owned cache must be listed in the worker's `KEEP`, or a deploy wipes it.
+  Generators load Tailwind's Play CDN, lucide, docx/JSZip, Chart.js and Google Fonts from CDNs;
+  `features/offline/api/vendorStore.ts` keeps one copy of each in Cache Storage
+  `radiology-vendor-v1` (shared, public, kept on sign-out) and `fetchAppHtml` writes them into
+  the generator's HTML before it renders — without that, offline generators open unstyled.
+  Downloads cache them too, and _Save as file_ exports the inlined page. `cdn.tailwindcss.com`
+  sends no CORS header, so `public/vendor/tailwindcss-play-3.4.17.js` is a byte-identical copy
+  (precached); a generator on another Tailwind CDN version needs its own copy in `BUNDLED`.
+  Offline with an expired token, `AuthProvider` runs from the stored session (`readStoredSession`,
   `auth.offline`) instead of waiting ~25 s for supabase-js to give up refreshing.
 - Screens are checked at 390 px (phone) and 1440 px, in English/dark, English/light and Arabic.
 
@@ -98,8 +105,8 @@ Read `README.md` first (what the app is, plans/roles, deploy). This file is the 
   IBM Plex Sans Arabic for Arabic glyphs only, Newsreader italic for the signature only (its
   font file is subset to the signature's letters — re-subset if that text changes).
 - Viewport vocabulary, each piece carrying meaning: the hero search sits on the cyan
-  *localizer line* (a PACS slice-position line, brightens on focus); `Viewport scale` draws the
-  trailing-edge calibration ruler on large viewports; body regions show *series thumbnails*
+  _localizer line_ (a PACS slice-position line, brightens on focus); `Viewport scale` draws the
+  trailing-edge calibration ruler on large viewports; body regions show _series thumbnails_
   (`SeriesThumb`: the region's first cover, grey `.film-tone` until hovered/selected) instead of
   emoji; generator covers rest slightly windowed down and window in on hover/focus
   (`.window-in`, hover devices only) — no zoom-on-hover.

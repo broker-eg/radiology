@@ -5,17 +5,24 @@
 //     new deploy changes BUILD, which installs a fresh cache and drops the previous one.
 //   - App shell (index.html): network first, but a slow network falls back to the saved shell
 //     after a short wait, so a weak signal never holds the app hostage. Offline → saved shell.
-//   - Hashed bundles, fonts, images under /assets/: cache first (they never change in place).
+//   - Hashed bundles, fonts, images under /assets/, and the versioned CDN copies under
+//     /vendor/ (Tailwind's Play CDN, inlined into generators): cache first.
 //   - Generator cover images (public Supabase bucket, versioned ?v= URLs): cache first.
 // Auth, catalog data and generator HTML always go to Supabase. The page keeps its own
-// per-account generator caches (recently opened + offline downloads), which this worker
-// never touches — they must survive its updates.
+// per-account generator caches (recently opened + offline downloads) and the generators' CDN
+// files (radiology-vendor-v1), which this worker never touches — they must survive its updates.
 const BUILD = 'dev';
 const PRECACHE = [];
 
 const SHELL_CACHE = `radiology-shell-${BUILD}`;
 const COVER_CACHE = 'radiology-covers-v1';
-const KEEP = new Set([SHELL_CACHE, COVER_CACHE, 'radiology-generators-v1', 'radiology-offline-v1']);
+const KEEP = new Set([
+  SHELL_CACHE,
+  COVER_CACHE,
+  'radiology-generators-v1',
+  'radiology-offline-v1',
+  'radiology-vendor-v1',
+]);
 const SHELL = [
   './',
   './index.html',
@@ -121,7 +128,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (url.pathname.includes('/assets/')) {
+  if (url.pathname.includes('/assets/') || url.pathname.includes('/vendor/')) {
     event.respondWith(cacheFirst(SHELL_CACHE, request));
     return;
   }

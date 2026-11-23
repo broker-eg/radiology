@@ -5,3 +5,4 @@ src/types/database.ts
 supabase/.temp
 flake.lock
 supabase/seed.sql
+public/vendor

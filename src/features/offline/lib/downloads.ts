@@ -1,10 +1,17 @@
 import { useSyncExternalStore } from 'react';
 import { downloadAppHtml } from '@/features/catalog/api/catalogService';
 import { t } from '@/lib/i18n';
+import { isOnline } from '@/lib/network';
 import { queryClient } from '@/lib/queryClient';
 import { toast } from '@/lib/toast';
 import type { OfflineApp, SuiteApp } from '@/types/domain';
-import { requestPersistentStorage, saveOfflineApp, warmCover } from '../api/offlineStore';
+import {
+  readOfflineApp,
+  requestPersistentStorage,
+  saveOfflineApp,
+  warmCover,
+} from '../api/offlineStore';
+import { cacheVendorResources } from '../api/vendorStore';
 import { formatBytes } from './format';
 
 export const offlineKeys = {
@@ -57,10 +64,57 @@ function remember(entry: OfflineApp) {
   }
 }
 
+// Saved versions whose CDN files (Tailwind, icons, fonts…) are known to be on the device.
+const VENDOR_READY_KEY = 'radiology:vendor-ready';
+const readyKey = (e: { appId: string; version: string }) => `${e.appId}@${e.version}`;
+
+function readVendorReady(): Set<string> {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(VENDOR_READY_KEY) ?? '[]') as string[]);
+  } catch {
+    return new Set();
+  }
+}
+
+function writeVendorReady(keys: Set<string>) {
+  try {
+    localStorage.setItem(VENDOR_READY_KEY, JSON.stringify([...keys]));
+  } catch {
+    /* only saves a re-check */
+  }
+}
+
+let warming = false;
+
+/**
+ * Generators downloaded before their CDN files were kept on the device open unstyled offline:
+ * fetch those files once while online. Each saved version is checked once.
+ */
+export async function warmVendorResources(entries: OfflineApp[]): Promise<void> {
+  if (warming || !isOnline()) return;
+  warming = true;
+  try {
+    const current = new Set(entries.map(readyKey));
+    const ready = new Set([...readVendorReady()].filter((k) => current.has(k)));
+    for (const entry of entries) {
+      if (ready.has(readyKey(entry)) || !isOnline()) continue;
+      const saved = await readOfflineApp(entry.appId).catch(() => null);
+      if (saved && (await cacheVendorResources(saved.html))) ready.add(readyKey(entry));
+    }
+    writeVendorReady(ready);
+  } finally {
+    warming = false;
+  }
+}
+
 async function downloadOne(app: SuiteApp) {
   try {
     const html = await downloadAppHtml(app.htmlPath as string);
     const entry = await saveOfflineApp(app, html);
+    // What makes it open styled offline: Tailwind, icons, Word export, fonts.
+    if (await cacheVendorResources(html).catch(() => false)) {
+      writeVendorReady(readVendorReady().add(readyKey(entry)));
+    }
     remember(entry);
     warmCover(app.coverUrl);
     update({

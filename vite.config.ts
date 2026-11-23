@@ -11,7 +11,8 @@ const base = process.env.VITE_BASE_PATH ?? './';
 
 /**
  * Offline: writes the list of built files into dist/sw.js so the service worker precaches the
- * whole app on install (lazy pages and fonts included, not just what the first visit loaded).
+ * whole app on install (lazy pages and fonts included, not just what the first visit loaded),
+ * plus public/vendor (the CDN copy generators need offline: features/offline/api/vendorStore).
  * BUILD hashes the list + index.html: each deploy changes sw.js, so browsers install the new
  * worker, which caches the new build and drops the old one.
  */
@@ -25,9 +26,11 @@ function precacheServiceWorker(): Plugin {
     },
     closeBundle() {
       const swPath = join(outDir, 'sw.js');
-      const files = readdirSync(join(outDir, 'assets'))
-        .sort()
-        .map((f) => `./assets/${f}`);
+      const list = (dir: string) =>
+        readdirSync(join(outDir, dir))
+          .sort()
+          .map((f) => `./${dir}/${f}`);
+      const files = [...list('assets'), ...list('vendor')];
       const build = createHash('sha256')
         .update(files.join('\n'))
         .update(readFileSync(join(outDir, 'index.html')))

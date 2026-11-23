@@ -12,7 +12,8 @@ import {
   removeOfflineApp,
   storageEstimate,
 } from '../api/offlineStore';
-import { offlineKeys } from '../lib/downloads';
+import { inlineVendorResources } from '../api/vendorStore';
+import { offlineKeys, warmVendorResources } from '../lib/downloads';
 import { htmlFileName } from '../lib/format';
 
 /**
@@ -89,14 +90,15 @@ export function useRemoveOffline() {
 
 /**
  * Saves a downloaded generator as a standalone .html file (Downloads / Files): it opens in any
- * browser, with no account and no connection.
+ * browser, with no account and no connection — its CDN files are written into the page.
  */
 export function useSaveFile() {
   return useMutation({
     mutationFn: async (entry: OfflineApp) => {
       const saved = await readOfflineApp(entry.appId);
       if (!saved) throw new Error(t().offline.missing);
-      const url = URL.createObjectURL(new Blob([saved.html], { type: 'text/html' }));
+      const html = await inlineVendorResources(saved.html);
+      const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
       const a = document.createElement('a');
       a.href = url;
       a.download = htmlFileName(entry.name);
@@ -110,8 +112,9 @@ export function useSaveFile() {
 
 /**
  * Keeps downloads in line with the account: drops generators that left the catalog, stopped
- * running in the suite, or are no longer on the person's plan. Runs only on fresh data (never
- * on the offline copy of the catalog or profile).
+ * running in the suite, or are no longer on the person's plan, and makes sure the CDN files
+ * the rest need are on the device. Runs only on fresh data (never on the offline copy of the
+ * catalog or profile).
  */
 export function useOfflineHousekeeping(
   apps: SuiteApp[],
@@ -129,6 +132,8 @@ export function useOfflineHousekeeping(
       const app = byId.get(e.appId);
       return !app || app.kind !== 'integrated' || !app.htmlPath || !canLaunch(app);
     });
+    const staleIds = new Set(stale.map((e) => e.appId));
+    void warmVendorResources(saved.filter((e) => !staleIds.has(e.appId)));
     if (!stale.length) return;
     stale.forEach((e) => removing.current.add(e.appId));
     void Promise.all(stale.map((e) => removeOfflineApp(e.appId).catch(() => undefined))).then(
